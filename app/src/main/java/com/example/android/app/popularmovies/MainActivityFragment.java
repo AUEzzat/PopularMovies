@@ -1,5 +1,6 @@
 package com.example.android.app.popularmovies;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -55,10 +56,10 @@ public class MainActivityFragment extends Fragment {
 
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-                String forecast = popMoviesAdapter.getItem(position);
-//                Intent intent = new Intent(getActivity(), DetailActivity.class)
-//                        .putExtra(Intent.EXTRA_TEXT, forecast);
-//                startActivity(intent);
+                String movie = popMoviesAdapter.getItem(position);
+                Intent intent = new Intent(getActivity(), DetailActivity.class)
+                        .putExtra(Intent.EXTRA_TEXT, movie);
+                startActivity(intent);
             }
         });
         return  rootView;
@@ -78,6 +79,21 @@ public class MainActivityFragment extends Fragment {
         updateMovieList();
     }
 
+    public boolean isOnline() {
+
+        Runtime runtime = Runtime.getRuntime();
+        try {
+
+            Process ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
+            int     exitValue = ipProcess.waitFor();
+            return (exitValue == 0);
+
+        } catch (IOException e)          { e.printStackTrace(); }
+        catch (InterruptedException e) { e.printStackTrace(); }
+
+        return false;
+    }
+
     public class FetchMoviesData extends AsyncTask<Void, Void, String[]> {
 
         private final String LOG_TAG = FetchMoviesData.class.getSimpleName();
@@ -89,10 +105,19 @@ public class MainActivityFragment extends Fragment {
 
             String[] resultStrs = new String[moviesArray.length()];
             String movieTitle="";
+            String releaseDate="";
+            String moviePoster="";
+            String voteAverage="";
+            String plotSynopsis="";
             for(int i = 0; i < moviesArray.length(); i++) {
                 JSONObject eachMovie = moviesArray.getJSONObject(i);
                 movieTitle = eachMovie.getString("title");
-                resultStrs[i] = movieTitle;
+                releaseDate = eachMovie.getString("release_date");
+                moviePoster = "http://image.tmdb.org/t/p/w185"+eachMovie.getString("poster_path");
+                voteAverage = eachMovie.getString("vote_average");
+                plotSynopsis = eachMovie.getString("overview");
+                System.out.println(moviePoster);
+                resultStrs[i] = movieTitle+","+releaseDate+","+moviePoster+","+voteAverage+","+plotSynopsis;
             }
             return resultStrs;
         }
@@ -112,6 +137,7 @@ public class MainActivityFragment extends Fragment {
                 URL url = new URL(movieUrl);
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
+                while(!isOnline());
                 urlConnection.connect();
 
                 // Read the input stream into a String
@@ -170,8 +196,8 @@ public class MainActivityFragment extends Fragment {
         protected void onPostExecute(String[] result) {
             if (result != null) {
                 popMoviesAdapter.clear();
-                for (String dayForecastStr : result) {
-                    popMoviesAdapter.add(dayForecastStr);
+                for (String popMovieStr : result) {
+                    popMoviesAdapter.add(popMovieStr);
                 }
             }
         }
