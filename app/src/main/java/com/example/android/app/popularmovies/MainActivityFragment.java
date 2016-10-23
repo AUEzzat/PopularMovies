@@ -1,6 +1,7 @@
 package com.example.android.app.popularmovies;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -9,8 +10,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
+import android.widget.GridView;
+
+import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -29,7 +31,7 @@ import java.util.ArrayList;
  */
 public class MainActivityFragment extends Fragment {
 
-    private ArrayAdapter<String> popMoviesAdapter;
+    private MovieDetailAdapter popMoviesAdapter;
 
     public MainActivityFragment() {
     }
@@ -42,23 +44,21 @@ public class MainActivityFragment extends Fragment {
         // The ArrayAdapter will take data from a source (like our dummy forecast) and
         // use it to populate the ListView it's attached to.
         popMoviesAdapter =
-                new ArrayAdapter<String>(
+                new MovieDetailAdapter(
                         getActivity(), // The current context (this activity)
-                        R.layout.popular_movies_layout, // The name of the layout ID.
-                        R.id.popular_movies_textview, // The ID of the textview to populate.
-                        new ArrayList<String>());
+                        new ArrayList<MovieDetail>());
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
         // Get a reference to the ListView, and attach this adapter to it.
-        ListView listView = (ListView) rootView.findViewById(R.id.popular_movies_list);
-        listView.setAdapter(popMoviesAdapter);
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        GridView gridView = (GridView) rootView.findViewById(R.id.popular_movies_grid);
+        gridView.setAdapter(popMoviesAdapter);
+        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-                String movie = popMoviesAdapter.getItem(position);
+                MovieDetail movie = popMoviesAdapter.getItem(position);
                 Intent intent = new Intent(getActivity(), DetailActivity.class)
-                        .putExtra(Intent.EXTRA_TEXT, movie);
+                        .putExtra(Intent.EXTRA_TEXT, movie.getString());
                 startActivity(intent);
             }
         });
@@ -94,35 +94,31 @@ public class MainActivityFragment extends Fragment {
         return false;
     }
 
-    public class FetchMoviesData extends AsyncTask<Void, Void, String[]> {
+    public class FetchMoviesData extends AsyncTask<Void, Void, MovieDetail[]> {
 
         private final String LOG_TAG = FetchMoviesData.class.getSimpleName();
 
-        private String[] getMoviesDataFromJson(String moviesJsonStr) throws JSONException {
+        private MovieDetail[] getMoviesDataFromJson(String moviesJsonStr) throws JSONException, IOException {
 
             JSONObject forecastJson = new JSONObject(moviesJsonStr);
             JSONArray moviesArray = forecastJson.getJSONArray("results");
 
-            String[] resultStrs = new String[moviesArray.length()];
-            String movieTitle="";
-            String releaseDate="";
-            String moviePoster="";
-            String voteAverage="";
-            String plotSynopsis="";
+            MovieDetail[] moviesResult = new MovieDetail[moviesArray.length()];
+
             for(int i = 0; i < moviesArray.length(); i++) {
                 JSONObject eachMovie = moviesArray.getJSONObject(i);
-                movieTitle = eachMovie.getString("title");
-                releaseDate = eachMovie.getString("release_date");
-                moviePoster = "http://image.tmdb.org/t/p/w185"+eachMovie.getString("poster_path");
-                voteAverage = eachMovie.getString("vote_average");
-                plotSynopsis = eachMovie.getString("overview");
-                System.out.println(moviePoster);
-                resultStrs[i] = movieTitle+","+releaseDate+","+moviePoster+","+voteAverage+","+plotSynopsis;
+                String movieTitle = eachMovie.getString("title");
+                Integer releaseDate = Integer.parseInt(eachMovie.getString("release_date").substring(0,4));
+                String moviePosterStr = "http://image.tmdb.org/t/p/w185"+eachMovie.getString("poster_path");
+                Bitmap moviePoster= Picasso.with(getContext()).load(moviePosterStr).get();
+                Double voteAverage = Double.parseDouble(eachMovie.getString("vote_average"));
+                String plotSynopsis = eachMovie.getString("overview");
+                moviesResult[i] = new MovieDetail(movieTitle, releaseDate, moviePoster, voteAverage, plotSynopsis);
             }
-            return resultStrs;
+            return moviesResult;
         }
         @Override
-        protected String[] doInBackground(Void... params) {
+        protected MovieDetail[] doInBackground(Void... params) {
 //            if (params.length == 0) {
 //                return null;
 //            }
@@ -188,16 +184,20 @@ public class MainActivityFragment extends Fragment {
                 Log.e(LOG_TAG, e.getMessage(), e);
                 e.printStackTrace();
             }
+            catch (IOException e) {
+                Log.e(LOG_TAG, e.getMessage(), e);
+                e.printStackTrace();
+            }
 
             // This will only happen if there was an error getting or parsing the forecast.
             return null;
         }
         @Override
-        protected void onPostExecute(String[] result) {
-            if (result != null) {
+        protected void onPostExecute(MovieDetail[] movieResult) {
+            if (movieResult != null) {
                 popMoviesAdapter.clear();
-                for (String popMovieStr : result) {
-                    popMoviesAdapter.add(popMovieStr);
+                for (MovieDetail popMovieObj : movieResult) {
+                    popMoviesAdapter.add(popMovieObj);
                 }
             }
         }

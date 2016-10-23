@@ -1,16 +1,17 @@
 package com.example.android.app.popularmovies;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-
-import com.squareup.picasso.Picasso;
 
 public class DetailActivity extends AppCompatActivity {
 
@@ -56,14 +57,26 @@ public class DetailActivity extends AppCompatActivity {
                 movieStr = intent.getStringExtra(Intent.EXTRA_TEXT).split(",");
                 ((TextView) rootView.findViewById(R.id.movie_title)).setText(movieStr[0]);
                 ((TextView) rootView.findViewById(R.id.release_date)).setText(movieStr[1]);
-                ImageView imageView = (ImageView) rootView.findViewById(R.id.movie_poster);
-                Picasso.with(getContext())
-                        .load(movieStr[2])
-                        .into(imageView);
+                ((ImageView) rootView.findViewById(R.id.movie_poster)).setImageBitmap(StringToBitMap(movieStr[2]));
                 ((TextView) rootView.findViewById(R.id.vote_average)).setText(movieStr[3]);
                 ((TextView) rootView.findViewById(R.id.plot_synopsis)).setText(movieStr[4]);
             }
             return rootView;
+        }
+
+        /**
+         * @param encodedString
+         * @return bitmap (from given string)
+         */
+        private static Bitmap StringToBitMap(String encodedString){
+            try{
+                byte [] encodeByte= Base64.decode(encodedString,Base64.DEFAULT);
+                Bitmap bitmap= BitmapFactory.decodeByteArray(encodeByte, 0, encodeByte.length);
+                return bitmap;
+            }catch(Exception e){
+                e.getMessage();
+                return null;
+            }
         }
 //        private Intent createShareForecastIntent() {
 //            Intent shareIntent = new Intent(Intent.ACTION_SEND);
