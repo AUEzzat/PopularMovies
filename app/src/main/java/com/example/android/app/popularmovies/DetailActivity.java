@@ -19,30 +19,13 @@ public class DetailActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
-//        getActionBar().setDisplayHomeAsUpEnabled(true);
     }
-
-//    public boolean onOptionsItemSelected(MenuItem item) {
-//        // Handle action bar item clicks here. The action bar will
-//        // automatically handle clicks on the Home/Up button, so long
-//        // as you specify a parent activity in AndroidManifest.xml.
-//        int id = item.getItemId();
-//
-//        //noinspection SimplifiableIfStatement
-////        if (id == R.id.action_settings) {
-////            startActivity(new Intent(this, SettingsActivity.class));
-////            return true;
-////        }
-//
-//        return super.onOptionsItemSelected(item);
-//    }
 
     public static class DetailActivityFragment extends Fragment {
 
         private static final String LOG_TAG = DetailActivityFragment.class.getSimpleName();
 
         private String movieStr[];
-//        private static final String MOVIE_SHARE_HASHTAG = " #PopularMoviesApp";
 
         public DetailActivityFragment() {
             setHasOptionsMenu(true);
@@ -78,14 +61,6 @@ public class DetailActivity extends AppCompatActivity {
                 return null;
             }
         }
-//        private Intent createShareForecastIntent() {
-//            Intent shareIntent = new Intent(Intent.ACTION_SEND);
-//            shareIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-//            shareIntent.setType("text/plain");
-//            shareIntent.putExtra(Intent.EXTRA_TEXT,
-//                    movieStr + MOVIE_SHARE_HASHTAG);
-//            return shareIntent;
-//        }
     }
 }
 
