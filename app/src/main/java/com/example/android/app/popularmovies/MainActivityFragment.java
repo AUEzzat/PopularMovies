@@ -120,7 +120,7 @@ public class MainActivityFragment extends Fragment {
 
             // Will contain the raw JSON response as a string.
             String moviesJsonStr = null;
-            String myApiKey = "80a833a4763920b2c735c6e5e3911338";
+            String myApiKey = "";
             String sortType = "popularity.desc";
             try {
                 Uri.Builder movieUrl = new Uri.Builder();
