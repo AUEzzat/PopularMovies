@@ -2,6 +2,7 @@ package com.example.android.app.popularmovies;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -40,9 +41,6 @@ public class MainActivityFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        // Now that we have some dummy forecast data, create an ArrayAdapter.
-        // The ArrayAdapter will take data from a source (like our dummy forecast) and
-        // use it to populate the ListView it's attached to.
         popMoviesAdapter =
                 new MovieDetailAdapter(
                         getActivity(), // The current context (this activity)
@@ -67,9 +65,6 @@ public class MainActivityFragment extends Fragment {
 
     private void updateMovieList() {
         FetchMoviesData movieTask = new FetchMoviesData();
-//        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-//        String location = prefs.getString(getString(R.string.pref_location_key),
-//                getString(R.string.pref_location_default));
         movieTask.execute();
     }
 
@@ -119,21 +114,27 @@ public class MainActivityFragment extends Fragment {
         }
         @Override
         protected MovieDetail[] doInBackground(Void... params) {
-//            if (params.length == 0) {
-//                return null;
-//            }
 
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
 
             // Will contain the raw JSON response as a string.
             String moviesJsonStr = null;
-            String movieUrl = "http://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&api_key=80a833a4763920b2c735c6e5e3911338";
+            String myApiKey = "";
+            String sortType = "popularity.desc";
             try {
-                URL url = new URL(movieUrl);
+                Uri.Builder movieUrl = new Uri.Builder();
+                movieUrl.scheme("https")
+                        .authority("api.themoviedb.org")
+                        .appendPath("3")
+                        .appendPath("discover")
+                        .appendPath("movie")
+                        .appendQueryParameter("sort_by", sortType)
+                        .appendQueryParameter("api_key", myApiKey);
+                URL url = new URL(movieUrl.toString());
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
-                while(!isOnline());
+                //while(!isOnline());
                 urlConnection.connect();
 
                 // Read the input stream into a String
@@ -147,9 +148,6 @@ public class MainActivityFragment extends Fragment {
 
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
-                    // But it does make debugging a *lot* easier if you print out the completed
-                    // buffer for debugging.
                     buffer.append(line + "\n");
                 }
 
@@ -161,11 +159,8 @@ public class MainActivityFragment extends Fragment {
             }
             catch (IOException e){
                 Log.e(LOG_TAG, "Error ", e);
-                // If the code didn't successfully get the weather data, there's no point in attemping
-                // to parse it.
                 return null;
             }
-            // Create the request to OpenWeatherMap, and open the connection
             finally {
                 if (urlConnection != null) {
                     urlConnection.disconnect();
@@ -188,8 +183,6 @@ public class MainActivityFragment extends Fragment {
                 Log.e(LOG_TAG, e.getMessage(), e);
                 e.printStackTrace();
             }
-
-            // This will only happen if there was an error getting or parsing the forecast.
             return null;
         }
         @Override
