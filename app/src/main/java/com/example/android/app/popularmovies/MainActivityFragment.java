@@ -1,10 +1,12 @@
 package com.example.android.app.popularmovies;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -51,7 +53,6 @@ public class MainActivityFragment extends Fragment {
         GridView gridView = (GridView) rootView.findViewById(R.id.popular_movies_grid);
         gridView.setAdapter(popMoviesAdapter);
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 MovieDetail movie = popMoviesAdapter.getItem(position);
@@ -63,15 +64,17 @@ public class MainActivityFragment extends Fragment {
         return  rootView;
     }
 
-    private void updateMovieList() {
+    private void updateMovieGrid() {
         FetchMoviesData movieTask = new FetchMoviesData();
-        movieTask.execute();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String api_key = prefs.getString(getString(R.string.pref_api_key), getString(R.string.pref_api_value));
+        movieTask.execute(api_key);
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        updateMovieList();
+        updateMovieGrid();
     }
 
     public boolean isOnline() {
@@ -89,7 +92,7 @@ public class MainActivityFragment extends Fragment {
         return false;
     }
 
-    public class FetchMoviesData extends AsyncTask<Void, Void, MovieDetail[]> {
+    public class FetchMoviesData extends AsyncTask<String, Void, MovieDetail[]> {
 
         private final String LOG_TAG = FetchMoviesData.class.getSimpleName();
 
@@ -103,25 +106,37 @@ public class MainActivityFragment extends Fragment {
             for(int i = 0; i < moviesArray.length(); i++) {
                 JSONObject eachMovie = moviesArray.getJSONObject(i);
                 String movieTitle = eachMovie.getString("title");
-                Integer releaseDate = Integer.parseInt(eachMovie.getString("release_date").substring(0,4));
+                String releaseDateStr = eachMovie.getString("release_date");
+                Integer releaseDate = (releaseDateStr.length() != 0) ?
+                        Integer.parseInt(releaseDateStr.substring(0,4)) : 0;
                 String moviePosterStr = "http://image.tmdb.org/t/p/w185"+eachMovie.getString("poster_path");
                 Bitmap moviePoster= Picasso.with(getContext()).load(moviePosterStr).get();
                 Double voteAverage = Double.parseDouble(eachMovie.getString("vote_average"));
+                Integer voteCount = Integer.parseInt(eachMovie.getString("vote_count"));
                 String plotSynopsis = eachMovie.getString("overview");
-                moviesResult[i] = new MovieDetail(movieTitle, releaseDate, moviePoster, voteAverage, plotSynopsis);
+                moviesResult[i] = new MovieDetail(movieTitle, releaseDate, moviePoster, voteAverage, voteCount, plotSynopsis);
             }
             return moviesResult;
         }
         @Override
-        protected MovieDetail[] doInBackground(Void... params) {
+        protected MovieDetail[] doInBackground(String... params) {
 
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
 
             // Will contain the raw JSON response as a string.
             String moviesJsonStr = null;
-            String myApiKey = "";
-            String sortType = "popularity.desc";
+            String myApiKey = params[0];
+            Log.v("dada",myApiKey);
+            String movieState;
+            SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            String movieStatePref = sharedPrefs.getString(
+                    getString(R.string.pref_movie_state_key),
+                    getString(R.string.pref_value_popularity));
+            if (movieStatePref.equals(getString(R.string.pref_value_top_rated)))
+                movieState = "top_rated.desc";
+            else
+                movieState = "popularity.desc";
             try {
                 Uri.Builder movieUrl = new Uri.Builder();
                 movieUrl.scheme("https")
@@ -129,7 +144,7 @@ public class MainActivityFragment extends Fragment {
                         .appendPath("3")
                         .appendPath("discover")
                         .appendPath("movie")
-                        .appendQueryParameter("sort_by", sortType)
+                        .appendQueryParameter("sort_by", movieState)
                         .appendQueryParameter("api_key", myApiKey);
                 URL url = new URL(movieUrl.toString());
                 urlConnection = (HttpURLConnection) url.openConnection();
