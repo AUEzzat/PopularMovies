@@ -15,22 +15,25 @@ public class MovieDetail {
     private int releaseDate;
     private Bitmap moviePoster;
     private double voteAverage;
+    private Integer voteCount;
     private String plotSynopsis;
 
-    public MovieDetail(){
-        this.movieTitle = "";
-        this.releaseDate = 0;
-        Bitmap.Config conf = Bitmap.Config.ARGB_8888; // see other conf types
-        this.moviePoster = Bitmap.createBitmap(200, 200, conf);
-        this.voteAverage = 0.0;
-        this.plotSynopsis = "";
-    }
+//    public MovieDetail(){
+//        this.movieTitle = "";
+//        this.releaseDate = 0;
+//        Bitmap.Config conf = Bitmap.Config.ARGB_8888; // see other conf types
+//        this.moviePoster = Bitmap.createBitmap(200, 200, conf);
+//        this.voteAverage = 0.0;
+//        this.plotSynopsis = "";
+//    }
 
-    public MovieDetail(String movieTitle, int releaseDate, Bitmap moviePoster, double voteAverage, String plotSynopsis){
+    public MovieDetail(String movieTitle, int releaseDate, Bitmap moviePoster,
+                       double voteAverage, Integer voteCount, String plotSynopsis){
         this.movieTitle = movieTitle;
         this.releaseDate = releaseDate;
         this.moviePoster = moviePoster;
         this.voteAverage = voteAverage;
+        this.voteCount = voteCount;
         this.plotSynopsis = plotSynopsis;
     }
 
@@ -39,7 +42,18 @@ public class MovieDetail {
     }
 
     public String getString(){
-        return (movieTitle+","+releaseDate+","+BitMapToString(moviePoster)+","+voteAverage+","+plotSynopsis);
+        String voteAveragePreview;
+        String releaseDatePreview = "????";
+
+        if(plotSynopsis.length() == 0)
+            plotSynopsis = "No overview found.";
+        if(releaseDate != 0)
+            releaseDatePreview = Integer.toString(releaseDate);
+        if(voteCount == 0)
+            voteAveragePreview = "Not Rated";
+        else
+            voteAveragePreview = voteAverage+"/10";
+        return (movieTitle+"░"+releaseDatePreview+"░"+BitMapToString(moviePoster)+"░"+voteAveragePreview+"░"+plotSynopsis);
     }
 
     /**

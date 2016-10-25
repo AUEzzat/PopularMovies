@@ -37,7 +37,7 @@ public class DetailActivity extends AppCompatActivity {
             Intent intent = getActivity().getIntent();
             View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
             if (intent != null && intent.hasExtra(Intent.EXTRA_TEXT)) {
-                movieStr = intent.getStringExtra(Intent.EXTRA_TEXT).split(",");
+                movieStr = intent.getStringExtra(Intent.EXTRA_TEXT).split("░");
                 ((TextView) rootView.findViewById(R.id.movie_title)).setText(movieStr[0]);
                 ((TextView) rootView.findViewById(R.id.release_date)).setText(movieStr[1]);
                 ((ImageView) rootView.findViewById(R.id.movie_poster)).setImageBitmap(StringToBitMap(movieStr[2]));

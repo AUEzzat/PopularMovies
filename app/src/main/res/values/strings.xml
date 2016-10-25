@@ -1,5 +1,18 @@
 <resources>
+
     <string name="app_name">PopularMovies</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_detail">DetailActivity</string>
+    <string name="title_activity_settings">SettingsActivity</string>
+
+    <!-- settings menu options-->
+    <string name="pref_api_key">api_key</string>
+    <string name="pref_api_value">Enter your themoviedb.org API</string>
+    <string name="pref_movie_state_key">sort_type</string>
+
+    <!-- settings menu sort type options-->
+    <string name="pref_label_popularity">Popularity</string>
+    <string name="pref_label_top_rated">Highest rated</string>
+    <string name="pref_value_popularity">popularity</string>
+    <string name="pref_value_top_rated">highest rated</string>
 </resources>
