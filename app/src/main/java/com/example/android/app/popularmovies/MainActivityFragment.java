@@ -57,7 +57,7 @@ public class MainActivityFragment extends Fragment {
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 MovieDetail movie = popMoviesAdapter.getItem(position);
                 Intent intent = new Intent(getActivity(), DetailActivity.class)
-                        .putExtra(Intent.EXTRA_TEXT, movie.getString());
+                        .putExtra("movie_detail", movie);
                 startActivity(intent);
             }
         });
@@ -74,23 +74,27 @@ public class MainActivityFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
+//        String toastMessage = "Enter your themoviedb.org API";
+//        if (getString(R.string.pref_api_value).equals(toastMessage))
+//            toastMessage = "Enter a valid API";
+//        Toast.makeText(getActivity(),getString(R.string.pref_api_value), Toast.LENGTH_LONG).show();
         updateMovieGrid();
     }
 
-    public boolean isOnline() {
-
-        Runtime runtime = Runtime.getRuntime();
-        try {
-
-            Process ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
-            int     exitValue = ipProcess.waitFor();
-            return (exitValue == 0);
-
-        } catch (IOException e)          { e.printStackTrace(); }
-        catch (InterruptedException e) { e.printStackTrace(); }
-
-        return false;
-    }
+//    public boolean isOnline() {
+//
+//        Runtime runtime = Runtime.getRuntime();
+//        try {
+//
+//            Process ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
+//            int     exitValue = ipProcess.waitFor();
+//            return (exitValue == 0);
+//
+//        } catch (IOException e)          { e.printStackTrace(); }
+//        catch (InterruptedException e) { e.printStackTrace(); }
+//
+//        return false;
+//    }
 
     public class FetchMoviesData extends AsyncTask<String, Void, MovieDetail[]> {
 
@@ -105,6 +109,7 @@ public class MainActivityFragment extends Fragment {
 
             for(int i = 0; i < moviesArray.length(); i++) {
                 JSONObject eachMovie = moviesArray.getJSONObject(i);
+                String movieID = eachMovie.getString("id");
                 String movieTitle = eachMovie.getString("title");
                 String releaseDateStr = eachMovie.getString("release_date");
                 Integer releaseDate = (releaseDateStr.length() != 0) ?
@@ -114,7 +119,8 @@ public class MainActivityFragment extends Fragment {
                 Double voteAverage = Double.parseDouble(eachMovie.getString("vote_average"));
                 Integer voteCount = Integer.parseInt(eachMovie.getString("vote_count"));
                 String plotSynopsis = eachMovie.getString("overview");
-                moviesResult[i] = new MovieDetail(movieTitle, releaseDate, moviePoster, voteAverage, voteCount, plotSynopsis);
+                moviesResult[i] = new MovieDetail(movieID, movieTitle, releaseDate, moviePoster,
+                        voteAverage, voteCount, plotSynopsis);
             }
             return moviesResult;
         }
@@ -127,7 +133,6 @@ public class MainActivityFragment extends Fragment {
             // Will contain the raw JSON response as a string.
             String moviesJsonStr = null;
             String myApiKey = params[0];
-            Log.v("dada",myApiKey);
             String movieState;
             SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
             String movieStatePref = sharedPrefs.getString(
