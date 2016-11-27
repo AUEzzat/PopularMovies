@@ -1,7 +1,9 @@
 package com.example.android.app.popularmovies;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -12,10 +14,14 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+
+import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -31,10 +37,13 @@ import java.util.ArrayList;
 
 public class DetailActivity extends AppCompatActivity {
 
+    public static Context baseContext;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
+        baseContext = getBaseContext();
     }
 
     public static class DetailActivityFragment extends Fragment {
@@ -42,7 +51,10 @@ public class DetailActivity extends AppCompatActivity {
         private static final String LOG_TAG = DetailActivityFragment.class.getSimpleName();
 
         private MovieDetail movie;
-        private ArrayAdapter<String> movieReviewsAdapter;
+        private ArrayAdapter<MovieReview> movieReviewsAdapter;
+        private ArrayAdapter<MovieTrailer> movieTrailersAdapter;
+        private ListView movieTrailersListView;
+        private ListView movieReviewsListView;
 
         public DetailActivityFragment() {
             setHasOptionsMenu(true);
@@ -51,16 +63,39 @@ public class DetailActivity extends AppCompatActivity {
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
-
-            movieReviewsAdapter = new ArrayAdapter<String>(
+            movieTrailersAdapter =
+                    new MovieTrailerAdapter(
                             getActivity(), // The current context (this activity)
-                            R.layout.movie_reviews_layout, // The name of the layout ID.
-                            R.id.movie_review_layout_textview, // The ID of the textview to populate.
-                            new ArrayList<String>());
+                            new ArrayList<MovieTrailer>());
+            movieReviewsAdapter = new MovieReviewAdapter(
+                    getActivity(), // The current context (this activity)
+                    new ArrayList<MovieReview>());
             Intent intent = getActivity().getIntent();
             View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
-            ListView listView = (ListView) rootView.findViewById(R.id.movie_reviews_list);
-            listView.setAdapter(movieReviewsAdapter);
+
+            movieTrailersListView = (ListView) rootView.findViewById(R.id.movie_trailers_list);
+            movieTrailersListView.setAdapter(movieTrailersAdapter);
+
+
+            movieTrailersListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+                @Override
+                public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                    MovieTrailer movieTrailer = movieTrailersAdapter.getItem(position);
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setData(Uri.parse(movieTrailer.getTrailerVideoSource()));
+                    if (intent.resolveActivity(baseContext.getPackageManager()) != null) {
+                        startActivity(intent);
+                    } else {
+                        Log.d(LOG_TAG, "Couldn't call " + movieTrailer.getTrailerVideoSource() + ", no receiving apps installed!");
+                    }
+                }
+            });
+
+
+            movieReviewsListView = (ListView) rootView.findViewById(R.id.movie_reviews_list);
+            movieReviewsListView.setAdapter(movieReviewsAdapter);
+
             if (intent != null && intent.hasExtra("movie_detail")) {
                 movie = intent.getExtras().getParcelable("movie_detail");
                 ((TextView) rootView.findViewById(R.id.movie_title)).setText(movie.getMovieTitle());
@@ -72,11 +107,31 @@ public class DetailActivity extends AppCompatActivity {
             return rootView;
         }
 
+        /**** Method for Setting the Height of the ListView dynamically.
+         **** Hack to fix the issue of not showing all the items of the ListView
+         **** when placed inside a ScrollView  ****/
+        public static void setListViewHeightBasedOnChildren(ListView listView) {
+            ListAdapter listAdapter = listView.getAdapter();
+            int totalHeight = 0;
+            for (int i = 0; i < listAdapter.getCount(); i++) {
+                View listItem = listAdapter.getView(i, null, listView);
+                listItem.measure(0, 0);
+                totalHeight += listItem.getMeasuredHeight();
+            }
+
+            ViewGroup.LayoutParams params = listView.getLayoutParams();
+            params.height = totalHeight + (listView.getDividerHeight() * (listAdapter.getCount() - 1));
+            listView.setLayoutParams(params);
+            listView.requestLayout();
+        }
+
         private void updateMovieDetails() {
+            FetchMovieTrailers movieTrailersTask = new FetchMovieTrailers();
             FetchMovieReviews movieReviewsTask = new FetchMovieReviews();
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
             String api_key = prefs.getString(getString(R.string.pref_api_key), getString(R.string.pref_api_value));
             String movieID = movie.getMovieID();
+            movieTrailersTask.execute(api_key, movieID);
             movieReviewsTask.execute(api_key, movieID);
         }
 
@@ -86,28 +141,137 @@ public class DetailActivity extends AppCompatActivity {
             updateMovieDetails();
         }
 
-        public class FetchMovieReviews extends AsyncTask<String, Void, ArrayList<String>> {
+        public class FetchMovieTrailers extends AsyncTask<String, Void, ArrayList<MovieTrailer>> {
+
+            private final String LOG_TAG = FetchMovieTrailers.class.getSimpleName();
+
+            private ArrayList<MovieTrailer> getMovieTrailersFromJson(String movieTrailersJsonStr) throws JSONException, IOException {
+
+                JSONObject forecastJson = new JSONObject(movieTrailersJsonStr);
+                JSONArray movieTrailersArray = forecastJson.getJSONArray("youtube");
+                ArrayList<MovieTrailer> movieTrailers = new ArrayList<>(movieTrailersArray.length());
+
+                for (int i = 0; i < movieTrailersArray.length(); i++) {
+                    JSONObject eachTrailer = movieTrailersArray.getJSONObject(i);
+                    String trailerTitle = eachTrailer.getString("name");
+                    String trailerSource = eachTrailer.getString("source");
+                    String trailerImageSource = "https://img.youtube.com/vi/" + trailerSource + "/0.jpg";
+                    Bitmap trailerImageBitmap = Picasso.with(getContext()).load(trailerImageSource).get();
+                    trailerImageBitmap = Bitmap.createScaledBitmap(trailerImageBitmap,(int)(trailerImageBitmap.getWidth()*0.5),
+                            (int)(trailerImageBitmap.getHeight()*0.5), true);
+                    String trailerVideoSource = "https://www.youtube.com/watch?v=" + trailerSource;
+                    MovieTrailer movieTrailer = new MovieTrailer(trailerTitle, trailerVideoSource, trailerImageBitmap);
+                    movieTrailers.add(movieTrailer);
+                }
+                return movieTrailers;
+            }
+
+            @Override
+            protected ArrayList<MovieTrailer> doInBackground(String... params) {
+
+                HttpURLConnection urlConnection = null;
+                BufferedReader reader = null;
+
+                // Will contain the raw JSON response as a string.
+                String movieTrailersJsonStr = null;
+                String myApiKey = params[0];
+                String movieID = params[1];
+                try {
+                    Uri.Builder movieUrl = new Uri.Builder();
+                    movieUrl.scheme("https")
+                            .authority("api.themoviedb.org")
+                            .appendPath("3")
+                            .appendPath("movie")
+                            .appendPath(movieID)
+                            .appendPath("trailers")
+                            .appendQueryParameter("api_key", myApiKey);
+                    URL url = new URL(movieUrl.toString());
+                    urlConnection = (HttpURLConnection) url.openConnection();
+                    urlConnection.setRequestMethod("GET");
+                    urlConnection.connect();
+                    // Read the input stream into a String
+                    InputStream inputStream = urlConnection.getInputStream();
+                    StringBuffer buffer = new StringBuffer();
+                    if (inputStream == null) {
+                        // Nothing to do.
+                        return null;
+                    }
+                    reader = new BufferedReader(new InputStreamReader(inputStream));
+
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        buffer.append(line + "\n");
+                    }
+
+                    if (buffer.length() == 0) {
+                        // Stream was empty.  No point in parsing.
+                        return null;
+                    }
+                    movieTrailersJsonStr = buffer.toString();
+                } catch (IOException e) {
+                    Log.e(LOG_TAG, "Error ", e);
+                    return null;
+                } finally {
+                    if (urlConnection != null) {
+                        urlConnection.disconnect();
+                    }
+                    if (reader != null) {
+                        try {
+                            reader.close();
+                        } catch (final IOException e) {
+                            Log.e(LOG_TAG, "Error closing stream", e);
+                        }
+                    }
+                }
+                try {
+                    return getMovieTrailersFromJson(movieTrailersJsonStr);
+                } catch (JSONException e) {
+                    Log.e(LOG_TAG, e.getMessage(), e);
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    Log.e(LOG_TAG, e.getMessage(), e);
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(ArrayList<MovieTrailer> movieTrailers) {
+                if (movieTrailers != null) {
+                    movieTrailersAdapter.clear();
+                    for (MovieTrailer movieTrailer : movieTrailers) {
+                        movieTrailersAdapter.add(movieTrailer);
+                    }
+                    if(movieTrailers.size() == 0){
+                        movieTrailers.add(new MovieTrailer("No trailers found", "https://www.youtube.com",
+                                Bitmap.createBitmap(480, 360, Bitmap.Config.ARGB_8888)));
+                    }
+                    setListViewHeightBasedOnChildren(movieTrailersListView);
+                }
+            }
+        }
+        public class FetchMovieReviews extends AsyncTask<String, Void, ArrayList<MovieReview>> {
 
             private final String LOG_TAG = FetchMovieReviews.class.getSimpleName();
 
-            private ArrayList<String> getMovieReviewsFromJson(String movieReviewsJsonStr) throws JSONException, IOException {
+            private ArrayList<MovieReview> getMovieReviewsFromJson(String movieReviewsJsonStr) throws JSONException, IOException {
 
                 JSONObject forecastJson = new JSONObject(movieReviewsJsonStr);
-                JSONArray moviesReviewsArray = forecastJson.getJSONArray("results");
-                ArrayList<String> movieReviews = new ArrayList<>(moviesReviewsArray.length());
+                JSONArray movieReviewsArray = forecastJson.getJSONArray("results");
+                ArrayList<MovieReview> movieReviews = new ArrayList<>(movieReviewsArray.length());
 
-                for (int i = 0; i < moviesReviewsArray.length(); i++) {
-                    JSONObject eachMovie = moviesReviewsArray.getJSONObject(i);
+                for (int i = 0; i < movieReviewsArray.length(); i++) {
+                    JSONObject eachMovie = movieReviewsArray.getJSONObject(i);
                     String reviewAuthor = eachMovie.getString("author");
                     String reviewContent = eachMovie.getString("content");
-                    String review = reviewContent;
-                    movieReviews.add(reviewAuthor + ":\n\n" + review);
+                    MovieReview movieReview = new MovieReview(reviewAuthor, reviewContent);
+                    movieReviews.add(movieReview);
                 }
                 return movieReviews;
             }
 
             @Override
-            protected ArrayList<String> doInBackground(String... params) {
+            protected ArrayList<MovieReview> doInBackground(String... params) {
 
                 HttpURLConnection urlConnection = null;
                 BufferedReader reader = null;
@@ -129,7 +293,6 @@ public class DetailActivity extends AppCompatActivity {
                     urlConnection = (HttpURLConnection) url.openConnection();
                     urlConnection.setRequestMethod("GET");
                     urlConnection.connect();
-
                     // Read the input stream into a String
                     InputStream inputStream = urlConnection.getInputStream();
                     StringBuffer buffer = new StringBuffer();
@@ -177,15 +340,16 @@ public class DetailActivity extends AppCompatActivity {
             }
 
             @Override
-            protected void onPostExecute(ArrayList<String> movieReviews) {
+            protected void onPostExecute(ArrayList<MovieReview> movieReviews) {
                 if (movieReviews != null) {
                     movieReviewsAdapter.clear();
-                    for (String movieReview : movieReviews) {
+                    for (MovieReview movieReview : movieReviews) {
                         movieReviewsAdapter.add(movieReview);
                     }
-                }
-                if(movieReviews.size() == 0){
-                    movieReviewsAdapter.add("No reviews yet.");
+                    if(movieReviews.size() == 0){
+                        movieReviewsAdapter.add(new MovieReview("","No reviews yet."));
+                    }
+                    setListViewHeightBasedOnChildren(movieReviewsListView);
                 }
             }
         }

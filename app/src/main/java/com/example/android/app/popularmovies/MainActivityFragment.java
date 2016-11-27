@@ -61,7 +61,7 @@ public class MainActivityFragment extends Fragment {
                 startActivity(intent);
             }
         });
-        return  rootView;
+        return rootView;
     }
 
     private void updateMovieGrid() {
@@ -107,15 +107,15 @@ public class MainActivityFragment extends Fragment {
 
             MovieDetail[] moviesResult = new MovieDetail[moviesArray.length()];
 
-            for(int i = 0; i < moviesArray.length(); i++) {
+            for (int i = 0; i < moviesArray.length(); i++) {
                 JSONObject eachMovie = moviesArray.getJSONObject(i);
                 String movieID = eachMovie.getString("id");
                 String movieTitle = eachMovie.getString("title");
                 String releaseDateStr = eachMovie.getString("release_date");
                 Integer releaseDate = (releaseDateStr.length() != 0) ?
-                        Integer.parseInt(releaseDateStr.substring(0,4)) : 0;
-                String moviePosterStr = "http://image.tmdb.org/t/p/w185"+eachMovie.getString("poster_path");
-                Bitmap moviePoster= Picasso.with(getContext()).load(moviePosterStr).get();
+                        Integer.parseInt(releaseDateStr.substring(0, 4)) : 0;
+                String moviePosterStr = "http://image.tmdb.org/t/p/w185" + eachMovie.getString("poster_path");
+                Bitmap moviePoster = Picasso.with(getContext()).load(moviePosterStr).get();
                 Double voteAverage = Double.parseDouble(eachMovie.getString("vote_average"));
                 Integer voteCount = Integer.parseInt(eachMovie.getString("vote_count"));
                 String plotSynopsis = eachMovie.getString("overview");
@@ -124,6 +124,7 @@ public class MainActivityFragment extends Fragment {
             }
             return moviesResult;
         }
+
         @Override
         protected MovieDetail[] doInBackground(String... params) {
 
@@ -139,7 +140,7 @@ public class MainActivityFragment extends Fragment {
                     getString(R.string.pref_movie_state_key),
                     getString(R.string.pref_value_popularity));
             if (movieStatePref.equals(getString(R.string.pref_value_top_rated)))
-                movieState = "top_rated.desc";
+                movieState = "vote_count.desc";
             else
                 movieState = "popularity.desc";
             try {
@@ -152,6 +153,7 @@ public class MainActivityFragment extends Fragment {
                         .appendQueryParameter("sort_by", movieState)
                         .appendQueryParameter("api_key", myApiKey);
                 URL url = new URL(movieUrl.toString());
+                Log.v("sasa", movieUrl.toString());
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 //while(!isOnline());
@@ -176,12 +178,10 @@ public class MainActivityFragment extends Fragment {
                     return null;
                 }
                 moviesJsonStr = buffer.toString();
-            }
-            catch (IOException e){
+            } catch (IOException e) {
                 Log.e(LOG_TAG, "Error ", e);
                 return null;
-            }
-            finally {
+            } finally {
                 if (urlConnection != null) {
                     urlConnection.disconnect();
                 }
@@ -198,13 +198,13 @@ public class MainActivityFragment extends Fragment {
             } catch (JSONException e) {
                 Log.e(LOG_TAG, e.getMessage(), e);
                 e.printStackTrace();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 Log.e(LOG_TAG, e.getMessage(), e);
                 e.printStackTrace();
             }
             return null;
         }
+
         @Override
         protected void onPostExecute(MovieDetail[] movieResult) {
             if (movieResult != null) {
