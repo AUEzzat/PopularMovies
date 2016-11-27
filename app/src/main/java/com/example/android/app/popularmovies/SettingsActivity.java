@@ -1,13 +1,13 @@
 package com.example.android.app.popularmovies;
 
-import android.app.Activity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 
 /**
  * Created by amrezzat on 10/25/2016.
  */
 
-public class SettingsActivity  extends Activity {
+public class SettingsActivity  extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
