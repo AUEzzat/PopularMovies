@@ -3,18 +3,23 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <PreferenceCategory
+        android:title="user themoviedb.org api key">
     <EditTextPreference
         android:title="API key"
         android:key="@string/pref_api_key"
         android:defaultValue="@string/pref_api_value"
         android:inputType="text"
         android:singleLine="true" />
+    </PreferenceCategory>
 
+    <PreferenceCategory
+        android:title="movies sort criteria">
     <ListPreference
         android:title="Sort type"
         android:key="@string/pref_movie_state_key"
         android:defaultValue="@string/pref_value_popularity"
         android:entries="@array/movie_state_options"
         android:entryValues="@array/movie_state_values" />
-
+    </PreferenceCategory>
 </PreferenceScreen>
