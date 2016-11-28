@@ -195,8 +195,8 @@ public class DetailActivity extends AppCompatActivity {
 
             private ArrayList<MovieTrailer> getMovieTrailersFromJson(String movieTrailersJsonStr) throws JSONException, IOException {
 
-                JSONObject forecastJson = new JSONObject(movieTrailersJsonStr);
-                JSONArray movieTrailersArray = forecastJson.getJSONArray("youtube");
+                JSONObject movieJson = new JSONObject(movieTrailersJsonStr);
+                JSONArray movieTrailersArray = movieJson.getJSONArray("youtube");
                 ArrayList<MovieTrailer> movieTrailers = new ArrayList<>(movieTrailersArray.length());
 
                 for (int i = 0; i < movieTrailersArray.length(); i++) {
@@ -305,8 +305,8 @@ public class DetailActivity extends AppCompatActivity {
 
             private ArrayList<MovieReview> getMovieReviewsFromJson(String movieReviewsJsonStr) throws JSONException, IOException {
 
-                JSONObject forecastJson = new JSONObject(movieReviewsJsonStr);
-                JSONArray movieReviewsArray = forecastJson.getJSONArray("results");
+                JSONObject movieJson = new JSONObject(movieReviewsJsonStr);
+                JSONArray movieReviewsArray = movieJson.getJSONArray("results");
                 ArrayList<MovieReview> movieReviews = new ArrayList<>(movieReviewsArray.length());
 
                 for (int i = 0; i < movieReviewsArray.length(); i++) {
