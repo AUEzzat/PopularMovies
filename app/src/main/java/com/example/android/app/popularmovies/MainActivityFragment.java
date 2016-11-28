@@ -132,7 +132,7 @@ public class MainActivityFragment extends Fragment {
 
             // Will contain the raw JSON response as a string.
             String moviesJsonStr = null;
-            String movieUrl = "http://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&api_key=80a833a4763920b2c735c6e5e3911338";
+            String movieUrl = "http://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&api_key=";
             try {
                 URL url = new URL(movieUrl);
                 urlConnection = (HttpURLConnection) url.openConnection();
