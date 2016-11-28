@@ -33,6 +33,10 @@
                 android:layout_height="wrap_content"
                 android:scaleType="centerCrop" />
 
+            <View
+                android:layout_width="10dp"
+                android:layout_height="fill_parent"/>
+
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -42,12 +46,20 @@
                 <TextView
                     android:id="@+id/release_date"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:textAppearanceLarge"/>
 
                 <TextView
                     android:id="@+id/vote_average"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:textAppearanceMedium"/>
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:id="@+id/favourite_button" />
             </LinearLayout>
         </LinearLayout>
 

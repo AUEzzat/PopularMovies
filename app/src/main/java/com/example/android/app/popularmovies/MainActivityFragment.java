@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
@@ -28,6 +29,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -35,6 +38,7 @@ import java.util.ArrayList;
 public class MainActivityFragment extends Fragment {
 
     private MovieDetailAdapter popMoviesAdapter;
+    private View rootView;
 
     public MainActivityFragment() {
     }
@@ -47,7 +51,7 @@ public class MainActivityFragment extends Fragment {
                 new MovieDetailAdapter(
                         getActivity(), // The current context (this activity)
                         new ArrayList<MovieDetail>());
-        View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+        rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
         // Get a reference to the ListView, and attach this adapter to it.
         GridView gridView = (GridView) rootView.findViewById(R.id.popular_movies_grid);
@@ -66,7 +70,7 @@ public class MainActivityFragment extends Fragment {
 
     private void updateMovieGrid() {
         FetchMoviesData movieTask = new FetchMoviesData();
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
         String api_key = prefs.getString(getString(R.string.pref_api_key), getString(R.string.pref_api_value));
         movieTask.execute(api_key);
     }
@@ -76,7 +80,7 @@ public class MainActivityFragment extends Fragment {
         super.onStart();
 //        String toastMessage = "Enter your themoviedb.org API";
 //        if (getString(R.string.pref_api_value).equals(toastMessage))
-//            toastMessage = "Enter a valid API";
+//            toastMessage = "Enter your themoviedb.org API key";
 //        Toast.makeText(getActivity(),getString(R.string.pref_api_value), Toast.LENGTH_LONG).show();
         updateMovieGrid();
     }
@@ -99,11 +103,13 @@ public class MainActivityFragment extends Fragment {
     public class FetchMoviesData extends AsyncTask<String, Void, MovieDetail[]> {
 
         private final String LOG_TAG = FetchMoviesData.class.getSimpleName();
+        private boolean sortByFavourites;
 
         private MovieDetail[] getMoviesDataFromJson(String moviesJsonStr) throws JSONException, IOException {
 
             JSONObject forecastJson = new JSONObject(moviesJsonStr);
-            JSONArray moviesArray = forecastJson.getJSONArray("results");
+            JSONArray moviesArray;
+            moviesArray = forecastJson.getJSONArray("results");
 
             MovieDetail[] moviesResult = new MovieDetail[moviesArray.length()];
 
@@ -134,52 +140,101 @@ public class MainActivityFragment extends Fragment {
             // Will contain the raw JSON response as a string.
             String moviesJsonStr = null;
             String myApiKey = params[0];
-            String movieState;
+            String movieState = "popularity.desc";
             SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
             String movieStatePref = sharedPrefs.getString(
                     getString(R.string.pref_movie_state_key),
                     getString(R.string.pref_value_popularity));
+            sortByFavourites = false;
             if (movieStatePref.equals(getString(R.string.pref_value_top_rated)))
                 movieState = "vote_count.desc";
-            else
+            else if (movieStatePref.equals(getString(R.string.pref_value_popularity)))
                 movieState = "popularity.desc";
+            else
+                sortByFavourites = true;
             try {
-                Uri.Builder movieUrl = new Uri.Builder();
-                movieUrl.scheme("https")
-                        .authority("api.themoviedb.org")
-                        .appendPath("3")
-                        .appendPath("discover")
-                        .appendPath("movie")
-                        .appendQueryParameter("sort_by", movieState)
-                        .appendQueryParameter("api_key", myApiKey);
-                URL url = new URL(movieUrl.toString());
-                Log.v("sasa", movieUrl.toString());
-                urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("GET");
-                //while(!isOnline());
-                urlConnection.connect();
+                if (sortByFavourites) {
+                    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getContext());
+                    Set<String> favouriteMoviesSet =
+                            sharedPref.getStringSet(getString(R.string.favourite_movies), new HashSet<String>());
+                    JSONArray moviesJsonArray = new JSONArray();
+                    for (String favouriteMovieID : favouriteMoviesSet) {
+                        Uri.Builder movieUrl = new Uri.Builder();
+                        movieUrl.scheme("https")
+                                .authority("api.themoviedb.org")
+                                .appendPath("3")
+                                .appendPath("movie")
+                                .appendPath(favouriteMovieID)
+                                .appendQueryParameter("api_key", myApiKey);
+                        URL url = new URL(movieUrl.toString());
+                        urlConnection = (HttpURLConnection) url.openConnection();
+                        urlConnection.setRequestMethod("GET");
+                        //while(!isOnline());
+                        urlConnection.connect();
+                        InputStream inputStream = urlConnection.getInputStream();
+                        StringBuffer buffer = new StringBuffer();
+                        if (inputStream == null) {
+                            // Nothing to do.
+                            return null;
+                        }
+                        reader = new BufferedReader(new InputStreamReader(inputStream));
 
-                // Read the input stream into a String
-                InputStream inputStream = urlConnection.getInputStream();
-                StringBuffer buffer = new StringBuffer();
-                if (inputStream == null) {
-                    // Nothing to do.
-                    return null;
-                }
-                reader = new BufferedReader(new InputStreamReader(inputStream));
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            buffer.append(line + "\n");
+                        }
 
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    buffer.append(line + "\n");
-                }
+                        if (buffer.length() == 0) {
+                            // Stream was empty.  No point in parsing.
+                            return null;
+                        }
+                        String movieJsonStr = buffer.toString();
+                        JSONObject forecastJson = new JSONObject(movieJsonStr);
+                        moviesJsonArray.put(forecastJson);
+                    }
+                    JSONObject moviesJsonArrayObj = new JSONObject().put("results", moviesJsonArray);
+                    moviesJsonStr = moviesJsonArrayObj.toString();
+                } else {
+                    Uri.Builder movieUrl = new Uri.Builder();
+                    movieUrl.scheme("https")
+                            .authority("api.themoviedb.org")
+                            .appendPath("3")
+                            .appendPath("discover")
+                            .appendPath("movie")
+                            .appendQueryParameter("sort_by", movieState)
+                            .appendQueryParameter("api_key", myApiKey);
+                    URL url = new URL(movieUrl.toString());
+                    urlConnection = (HttpURLConnection) url.openConnection();
+                    urlConnection.setRequestMethod("GET");
+                    //while(!isOnline());
+                    urlConnection.connect();
 
-                if (buffer.length() == 0) {
-                    // Stream was empty.  No point in parsing.
-                    return null;
+                    // Read the input stream into a String
+                    InputStream inputStream = urlConnection.getInputStream();
+                    StringBuffer buffer = new StringBuffer();
+                    if (inputStream == null) {
+                        // Nothing to do.
+                        return null;
+                    }
+                    reader = new BufferedReader(new InputStreamReader(inputStream));
+
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        buffer.append(line + "\n");
+                    }
+
+                    if (buffer.length() == 0) {
+                        // Stream was empty.  No point in parsing.
+                        return null;
+                    }
+                    moviesJsonStr = buffer.toString();
                 }
-                moviesJsonStr = buffer.toString();
             } catch (IOException e) {
                 Log.e(LOG_TAG, "Error ", e);
+                return null;
+            } catch (JSONException e) {
+                Log.e(LOG_TAG, "Error ", e);
+                e.printStackTrace();
                 return null;
             } finally {
                 if (urlConnection != null) {
@@ -211,6 +266,13 @@ public class MainActivityFragment extends Fragment {
                 popMoviesAdapter.clear();
                 for (MovieDetail popMovieObj : movieResult) {
                     popMoviesAdapter.add(popMovieObj);
+                }
+                if(movieResult.length == 0) {
+                    TextView popMoviesText = (TextView) rootView.findViewById(R.id.popular_movies_text);
+                    if(sortByFavourites)
+                        popMoviesText.setText("Add movies to Favourites to see here");
+                    else
+                        popMoviesText.setText("No movies found with this criteries");
                 }
             }
         }

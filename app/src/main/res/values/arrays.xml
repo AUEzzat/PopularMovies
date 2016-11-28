@@ -3,10 +3,12 @@
     <string-array name="movie_state_options">
         <item>@string/pref_label_popularity</item>
         <item>@string/pref_label_top_rated</item>
+        <item>@string/pref_label_favourite</item>
     </string-array>
 
     <string-array name="movie_state_values">
         <item>@string/pref_value_popularity</item>
         <item>@string/pref_value_top_rated</item>
+        <item>@string/pref_value_favourite</item>
     </string-array>
 </resources>
