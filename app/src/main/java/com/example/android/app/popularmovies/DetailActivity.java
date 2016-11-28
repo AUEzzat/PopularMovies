@@ -1,6 +1,5 @@
 package com.example.android.app.popularmovies;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -14,11 +13,14 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
@@ -34,27 +36,27 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 public class DetailActivity extends AppCompatActivity {
-
-    public static Context baseContext;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
-        baseContext = getBaseContext();
     }
 
     public static class DetailActivityFragment extends Fragment {
 
         private static final String LOG_TAG = DetailActivityFragment.class.getSimpleName();
-
         private MovieDetail movie;
         private ArrayAdapter<MovieReview> movieReviewsAdapter;
         private ArrayAdapter<MovieTrailer> movieTrailersAdapter;
         private ListView movieTrailersListView;
         private ListView movieReviewsListView;
+        private Set<String> favouriteMoviesSet;
+        private Button favouriteButton;
 
         public DetailActivityFragment() {
             setHasOptionsMenu(true);
@@ -84,7 +86,7 @@ public class DetailActivity extends AppCompatActivity {
                     MovieTrailer movieTrailer = movieTrailersAdapter.getItem(position);
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setData(Uri.parse(movieTrailer.getTrailerVideoSource()));
-                    if (intent.resolveActivity(baseContext.getPackageManager()) != null) {
+                    if (intent.resolveActivity(getContext().getPackageManager()) != null) {
                         startActivity(intent);
                     } else {
                         Log.d(LOG_TAG, "Couldn't call " + movieTrailer.getTrailerVideoSource() + ", no receiving apps installed!");
@@ -103,13 +105,59 @@ public class DetailActivity extends AppCompatActivity {
                 ((ImageView) rootView.findViewById(R.id.movie_poster)).setImageBitmap(movie.getMoviePoster());
                 ((TextView) rootView.findViewById(R.id.vote_average)).setText(movie.getVoteAverageStr());
                 ((TextView) rootView.findViewById(R.id.plot_synopsis)).setText(movie.getPlotSynopsis());
+
+
+                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getContext());
+                favouriteMoviesSet =
+                        sharedPref.getStringSet(getString(R.string.favourite_movies), new HashSet<String>());
+
+                favouriteButton = (Button) rootView.findViewById(R.id.favourite_button);
+                if (favouriteMoviesSet.contains(movie.getMovieID()))
+                    favouriteButton.setText(getString(R.string.favourite_button_remove));
+                else
+                    favouriteButton.setText(getString(R.string.favourite_button_add));
+                favouriteButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getContext());
+                        SharedPreferences.Editor editor = sharedPref.edit();
+                        String sortGridBy = sharedPref.getString(
+                                getString(R.string.pref_movie_state_key),
+                                getString(R.string.pref_value_popularity));
+                        if (favouriteMoviesSet.contains(movie.getMovieID())) {
+                            favouriteMoviesSet.remove(movie.getMovieID());
+                            favouriteButton.setText(getString(R.string.favourite_button_add));
+                        }
+                        else {
+                            favouriteMoviesSet.add(movie.getMovieID());
+                            favouriteButton.setText(getString(R.string.favourite_button_remove));
+                        }
+                        editor.putString(getString(R.string.pref_movie_state_key), sortGridBy);
+                        editor.putStringSet(getString(R.string.favourite_movies), favouriteMoviesSet);
+                        editor.clear();
+                        editor.apply();
+                    }
+                });
+
+                final ScrollView scrollView = (ScrollView) rootView.findViewById(R.id.activity_detail_scroll_view);
+                // Wait until my scrollView is ready
+                scrollView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override
+                    public void onGlobalLayout() {
+                        // Ready, move up
+                        scrollView.fullScroll(View.FOCUS_UP);
+                    }
+                });
             }
             return rootView;
         }
 
-        /**** Method for Setting the Height of the ListView dynamically.
-         **** Hack to fix the issue of not showing all the items of the ListView
-         **** when placed inside a ScrollView  ****/
+
+        /****
+         * Method for Setting the Height of the ListView dynamically.
+         * *** Hack to fix the issue of not showing all the items of the ListView
+         * *** when placed inside a ScrollView
+         ****/
         public static void setListViewHeightBasedOnChildren(ListView listView) {
             ListAdapter listAdapter = listView.getAdapter();
             int totalHeight = 0;
@@ -157,8 +205,8 @@ public class DetailActivity extends AppCompatActivity {
                     String trailerSource = eachTrailer.getString("source");
                     String trailerImageSource = "https://img.youtube.com/vi/" + trailerSource + "/0.jpg";
                     Bitmap trailerImageBitmap = Picasso.with(getContext()).load(trailerImageSource).get();
-                    trailerImageBitmap = Bitmap.createScaledBitmap(trailerImageBitmap,(int)(trailerImageBitmap.getWidth()*0.5),
-                            (int)(trailerImageBitmap.getHeight()*0.5), true);
+                    trailerImageBitmap = Bitmap.createScaledBitmap(trailerImageBitmap, (int) (trailerImageBitmap.getWidth() * 0.5),
+                            (int) (trailerImageBitmap.getHeight() * 0.5), true);
                     String trailerVideoSource = "https://www.youtube.com/watch?v=" + trailerSource;
                     MovieTrailer movieTrailer = new MovieTrailer(trailerTitle, trailerVideoSource, trailerImageBitmap);
                     movieTrailers.add(movieTrailer);
@@ -242,7 +290,7 @@ public class DetailActivity extends AppCompatActivity {
                     for (MovieTrailer movieTrailer : movieTrailers) {
                         movieTrailersAdapter.add(movieTrailer);
                     }
-                    if(movieTrailers.size() == 0){
+                    if (movieTrailers.size() == 0) {
                         movieTrailers.add(new MovieTrailer("No trailers found", "https://www.youtube.com",
                                 Bitmap.createBitmap(480, 360, Bitmap.Config.ARGB_8888)));
                     }
@@ -250,6 +298,7 @@ public class DetailActivity extends AppCompatActivity {
                 }
             }
         }
+
         public class FetchMovieReviews extends AsyncTask<String, Void, ArrayList<MovieReview>> {
 
             private final String LOG_TAG = FetchMovieReviews.class.getSimpleName();
@@ -346,8 +395,8 @@ public class DetailActivity extends AppCompatActivity {
                     for (MovieReview movieReview : movieReviews) {
                         movieReviewsAdapter.add(movieReview);
                     }
-                    if(movieReviews.size() == 0){
-                        movieReviewsAdapter.add(new MovieReview("","No reviews yet."));
+                    if (movieReviews.size() == 0) {
+                        movieReviewsAdapter.add(new MovieReview("", "No reviews yet."));
                     }
                     setListViewHeightBasedOnChildren(movieReviewsListView);
                 }
