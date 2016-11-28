@@ -107,9 +107,9 @@ public class MainActivityFragment extends Fragment {
 
         private MovieDetail[] getMoviesDataFromJson(String moviesJsonStr) throws JSONException, IOException {
 
-            JSONObject forecastJson = new JSONObject(moviesJsonStr);
+            JSONObject movieJson = new JSONObject(moviesJsonStr);
             JSONArray moviesArray;
-            moviesArray = forecastJson.getJSONArray("results");
+            moviesArray = movieJson.getJSONArray("results");
 
             MovieDetail[] moviesResult = new MovieDetail[moviesArray.length()];
 
@@ -147,7 +147,7 @@ public class MainActivityFragment extends Fragment {
                     getString(R.string.pref_value_popularity));
             sortByFavourites = false;
             if (movieStatePref.equals(getString(R.string.pref_value_top_rated)))
-                movieState = "vote_count.desc";
+                movieState = "top_rated.desc";
             else if (movieStatePref.equals(getString(R.string.pref_value_popularity)))
                 movieState = "popularity.desc";
             else
@@ -189,8 +189,8 @@ public class MainActivityFragment extends Fragment {
                             return null;
                         }
                         String movieJsonStr = buffer.toString();
-                        JSONObject forecastJson = new JSONObject(movieJsonStr);
-                        moviesJsonArray.put(forecastJson);
+                        JSONObject favMovieJsonObj = new JSONObject(movieJsonStr);
+                        moviesJsonArray.put(favMovieJsonObj);
                     }
                     JSONObject moviesJsonArrayObj = new JSONObject().put("results", moviesJsonArray);
                     moviesJsonStr = moviesJsonArrayObj.toString();
@@ -234,7 +234,6 @@ public class MainActivityFragment extends Fragment {
                 return null;
             } catch (JSONException e) {
                 Log.e(LOG_TAG, "Error ", e);
-                e.printStackTrace();
                 return null;
             } finally {
                 if (urlConnection != null) {
