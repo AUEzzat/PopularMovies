@@ -15,7 +15,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
@@ -51,20 +50,30 @@ public class DetailActivity extends AppCompatActivity {
 
         private static final String LOG_TAG = DetailActivityFragment.class.getSimpleName();
         private MovieDetail movie;
-        private ArrayAdapter<MovieReview> movieReviewsAdapter;
-        private ArrayAdapter<MovieTrailer> movieTrailersAdapter;
+        private MovieReviewAdapter movieReviewsAdapter;
+        private MovieTrailerAdapter movieTrailersAdapter;
         private ListView movieTrailersListView;
         private ListView movieReviewsListView;
-        private Set<String> favouriteMoviesSet;
-        private Button favouriteButton;
+        private ScrollView scrollView;
+        private static int scrollY = -1;
 
         public DetailActivityFragment() {
             setHasOptionsMenu(true);
         }
 
         @Override
+        public void onSaveInstanceState(Bundle outState) {
+            super.onSaveInstanceState(outState);
+            outState.putParcelableArrayList("movieReviewsAdapter", movieReviewsAdapter.getAll());
+            outState.putParcelableArrayList("movieTrailersAdapter", movieTrailersAdapter.getAll());
+            scrollY = scrollView.getScrollY();
+        }
+
+        @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
+
+            // Wait until my scrollView is ready
             movieTrailersAdapter =
                     new MovieTrailerAdapter(
                             getActivity(), // The current context (this activity)
@@ -72,8 +81,25 @@ public class DetailActivity extends AppCompatActivity {
             movieReviewsAdapter = new MovieReviewAdapter(
                     getActivity(), // The current context (this activity)
                     new ArrayList<MovieReview>());
+
             Intent intent = getActivity().getIntent();
             View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
+            scrollView = (ScrollView) rootView.findViewById(R.id.activity_detail_scroll_view);
+
+            scrollView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    // Ready, move to last position
+                    scrollView.scrollTo(0, scrollY);
+                }
+            });
+
+            if (savedInstanceState != null) {
+                ArrayList<MovieReview> trailerItems = savedInstanceState.getParcelableArrayList("movieReviewsAdapter");
+                movieReviewsAdapter.addAll(trailerItems); // Load saved data if any.
+                ArrayList<MovieReview> reviewItems = savedInstanceState.getParcelableArrayList("movieTrailersAdapter");
+                movieReviewsAdapter.addAll(reviewItems); // Load saved data if any.
+            }
 
             movieTrailersListView = (ListView) rootView.findViewById(R.id.movie_trailers_list);
             movieTrailersListView.setAdapter(movieTrailersAdapter);
@@ -108,10 +134,10 @@ public class DetailActivity extends AppCompatActivity {
 
 
                 SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getContext());
-                favouriteMoviesSet =
+                final Set<String> favouriteMoviesSet =
                         sharedPref.getStringSet(getString(R.string.favourite_movies), new HashSet<String>());
 
-                favouriteButton = (Button) rootView.findViewById(R.id.favourite_button);
+                final Button favouriteButton = (Button) rootView.findViewById(R.id.favourite_button);
                 if (favouriteMoviesSet.contains(movie.getMovieID()))
                     favouriteButton.setText(getString(R.string.favourite_button_remove));
                 else
@@ -127,8 +153,7 @@ public class DetailActivity extends AppCompatActivity {
                         if (favouriteMoviesSet.contains(movie.getMovieID())) {
                             favouriteMoviesSet.remove(movie.getMovieID());
                             favouriteButton.setText(getString(R.string.favourite_button_add));
-                        }
-                        else {
+                        } else {
                             favouriteMoviesSet.add(movie.getMovieID());
                             favouriteButton.setText(getString(R.string.favourite_button_remove));
                         }
@@ -136,16 +161,6 @@ public class DetailActivity extends AppCompatActivity {
                         editor.putStringSet(getString(R.string.favourite_movies), favouriteMoviesSet);
                         editor.clear();
                         editor.apply();
-                    }
-                });
-
-                final ScrollView scrollView = (ScrollView) rootView.findViewById(R.id.activity_detail_scroll_view);
-                // Wait until my scrollView is ready
-                scrollView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-                    @Override
-                    public void onGlobalLayout() {
-                        // Ready, move up
-                        scrollView.fullScroll(View.FOCUS_UP);
                     }
                 });
             }
@@ -398,7 +413,7 @@ public class DetailActivity extends AppCompatActivity {
                     if (movieReviews.size() == 0) {
                         movieReviewsAdapter.add(new MovieReview("", "No reviews yet."));
                     }
-                    setListViewHeightBasedOnChildren(movieReviewsListView);
+                    //setListViewHeightBasedOnChildren(movieReviewsListView);
                 }
             }
         }

@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -43,5 +44,14 @@ public class MovieDetailAdapter extends ArrayAdapter<MovieDetail> {
         iconView.setImageBitmap(movieDetail.getMoviePoster());
 
         return convertView;
+    }
+
+    public ArrayList<MovieDetail> getAll(){
+        int count = getCount();
+        ArrayList<MovieDetail> tempArray = new ArrayList<>(count);
+        for (int i =0; i < count; i++) {
+            tempArray.add(getItem(i));
+        }
+        return tempArray;
     }
 }

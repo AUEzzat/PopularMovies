@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -46,5 +47,14 @@ public class MovieReviewAdapter extends ArrayAdapter<MovieReview> {
         reviewContentView.setText(movieReview.getReviewContent());
 
         return convertView;
+    }
+
+    public ArrayList<MovieReview> getAll(){
+        int count = getCount();
+        ArrayList<MovieReview> tempArray = new ArrayList<>(count);
+        for (int i =0; i < count; i++) {
+            tempArray.add(getItem(i));
+        }
+        return tempArray;
     }
 }
