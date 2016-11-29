@@ -8,6 +8,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -47,5 +48,14 @@ public class MovieTrailerAdapter extends ArrayAdapter<MovieTrailer> {
         versionNumberView.setText(movieTrailer.getTrailerTitle());
 
         return convertView;
+    }
+
+    public ArrayList<MovieTrailer> getAll(){
+        int count = getCount();
+        ArrayList<MovieTrailer> tempArray = new ArrayList<>(count);
+        for (int i =0; i < count; i++) {
+            tempArray.add(getItem(i));
+        }
+        return tempArray;
     }
 }

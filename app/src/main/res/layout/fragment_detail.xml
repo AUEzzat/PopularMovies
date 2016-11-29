@@ -85,11 +85,6 @@
                 android:layout_height="wrap_content"
                 android:text="\nTrailers:\n"
                 android:textAppearance="?android:textAppearanceMedium" />
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:id="@+id/movie_trailer_text"/>
 
             <ListView
                 android:id="@+id/movie_trailers_list"

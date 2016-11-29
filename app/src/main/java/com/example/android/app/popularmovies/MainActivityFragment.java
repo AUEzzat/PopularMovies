@@ -46,11 +46,16 @@ public class MainActivityFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
         popMoviesAdapter =
                 new MovieDetailAdapter(
                         getActivity(), // The current context (this activity)
                         new ArrayList<MovieDetail>());
+        if(savedInstanceState != null) {
+            ArrayList<MovieDetail> items = savedInstanceState.getParcelableArrayList("moviesAdapter");
+            popMoviesAdapter.addAll(items); // Load saved data if any.
+        }
         rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
         // Get a reference to the ListView, and attach this adapter to it.
@@ -73,6 +78,12 @@ public class MainActivityFragment extends Fragment {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
         String api_key = prefs.getString(getString(R.string.pref_api_key), getString(R.string.pref_api_value));
         movieTask.execute(api_key);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle state) {
+        super.onSaveInstanceState(state);
+        state.putParcelableArrayList("moviesAdapter", popMoviesAdapter.getAll());
     }
 
     @Override
