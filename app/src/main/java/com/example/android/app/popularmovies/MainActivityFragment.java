@@ -3,9 +3,11 @@ package com.example.android.app.popularmovies;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -39,6 +41,8 @@ public class MainActivityFragment extends Fragment {
 
     private MovieDetailAdapter popMoviesAdapter;
     private View rootView;
+    private GridView gridView;
+    private Parcelable state;
 
     public MainActivityFragment() {
     }
@@ -46,20 +50,20 @@ public class MainActivityFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
 
         popMoviesAdapter =
                 new MovieDetailAdapter(
                         getActivity(), // The current context (this activity)
                         new ArrayList<MovieDetail>());
-        if(savedInstanceState != null) {
+        if (savedInstanceState != null) {
             ArrayList<MovieDetail> items = savedInstanceState.getParcelableArrayList("moviesAdapter");
-            popMoviesAdapter.addAll(items); // Load saved data if any.
+            if (items != null)
+                popMoviesAdapter.addAll(items); // Load saved data if any.
         }
         rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
         // Get a reference to the ListView, and attach this adapter to it.
-        GridView gridView = (GridView) rootView.findViewById(R.id.popular_movies_grid);
+        gridView = (GridView) rootView.findViewById(R.id.popular_movies_grid);
         gridView.setAdapter(popMoviesAdapter);
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -96,25 +100,12 @@ public class MainActivityFragment extends Fragment {
         updateMovieGrid();
     }
 
-//    public boolean isOnline() {
-//
-//        Runtime runtime = Runtime.getRuntime();
-//        try {
-//
-//            Process ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
-//            int     exitValue = ipProcess.waitFor();
-//            return (exitValue == 0);
-//
-//        } catch (IOException e)          { e.printStackTrace(); }
-//        catch (InterruptedException e) { e.printStackTrace(); }
-//
-//        return false;
-//    }
-
     public class FetchMoviesData extends AsyncTask<String, Void, MovieDetail[]> {
 
         private final String LOG_TAG = FetchMoviesData.class.getSimpleName();
+
         private boolean sortByFavourites;
+//        private ProgressDialog progressDialog;
 
         private MovieDetail[] getMoviesDataFromJson(String moviesJsonStr) throws JSONException, IOException {
 
@@ -125,22 +116,37 @@ public class MainActivityFragment extends Fragment {
             MovieDetail[] moviesResult = new MovieDetail[moviesArray.length()];
 
             for (int i = 0; i < moviesArray.length(); i++) {
+
                 JSONObject eachMovie = moviesArray.getJSONObject(i);
                 String movieID = eachMovie.getString("id");
                 String movieTitle = eachMovie.getString("title");
                 String releaseDateStr = eachMovie.getString("release_date");
                 Integer releaseDate = (releaseDateStr.length() != 0) ?
                         Integer.parseInt(releaseDateStr.substring(0, 4)) : 0;
-                String moviePosterStr = "http://image.tmdb.org/t/p/w185" + eachMovie.getString("poster_path");
-                Bitmap moviePoster = Picasso.with(getContext()).load(moviePosterStr).get();
+                String posterID = eachMovie.getString("poster_path");
+                String moviePosterStr = "http://image.tmdb.org/t/p/w185" + posterID;
+                Bitmap moviePoster;
+                if(!posterID.equals("null"))
+                    moviePoster = Picasso.with(getContext()).load(moviePosterStr).get();
+                else
+                    moviePoster = BitmapFactory.decodeResource(getResources(),R.drawable.no_poster);
+                moviePoster = Bitmap.createScaledBitmap(moviePoster, 185, 277, true);
                 Double voteAverage = Double.parseDouble(eachMovie.getString("vote_average"));
                 Integer voteCount = Integer.parseInt(eachMovie.getString("vote_count"));
                 String plotSynopsis = eachMovie.getString("overview");
                 moviesResult[i] = new MovieDetail(movieID, movieTitle, releaseDate, moviePoster,
                         voteAverage, voteCount, plotSynopsis);
+
             }
             return moviesResult;
         }
+
+//        @Override
+//        protected void onPreExecute() {
+//
+//            progressDialog = ProgressDialog.show(getContext(), "Loading...",
+//                    "Data is Loading...");
+//        }
 
         @Override
         protected MovieDetail[] doInBackground(String... params) {
@@ -180,7 +186,6 @@ public class MainActivityFragment extends Fragment {
                         URL url = new URL(movieUrl.toString());
                         urlConnection = (HttpURLConnection) url.openConnection();
                         urlConnection.setRequestMethod("GET");
-                        //while(!isOnline());
                         urlConnection.connect();
                         InputStream inputStream = urlConnection.getInputStream();
                         StringBuffer buffer = new StringBuffer();
@@ -217,7 +222,6 @@ public class MainActivityFragment extends Fragment {
                     URL url = new URL(movieUrl.toString());
                     urlConnection = (HttpURLConnection) url.openConnection();
                     urlConnection.setRequestMethod("GET");
-                    //while(!isOnline());
                     urlConnection.connect();
 
                     // Read the input stream into a String
@@ -272,14 +276,15 @@ public class MainActivityFragment extends Fragment {
 
         @Override
         protected void onPostExecute(MovieDetail[] movieResult) {
-            if (movieResult != null) {
+//            progressDialog.dismiss();
+            if (movieResult != null && popMoviesAdapter != null) {
                 popMoviesAdapter.clear();
                 for (MovieDetail popMovieObj : movieResult) {
                     popMoviesAdapter.add(popMovieObj);
                 }
-                if(movieResult.length == 0) {
+                if (movieResult.length == 0) {
                     TextView popMoviesText = (TextView) rootView.findViewById(R.id.popular_movies_text);
-                    if(sortByFavourites)
+                    if (sortByFavourites)
                         popMoviesText.setText("Add movies to Favourites to see here");
                     else
                         popMoviesText.setText("No movies found with this criteries");

@@ -10,7 +10,7 @@
     <LinearLayout
         android:id="@+id/activity_detail"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical">
 
         <TextView
@@ -86,7 +86,7 @@
                 android:text="\nTrailers:\n"
                 android:textAppearance="?android:textAppearanceMedium" />
 
-            <ListView
+            <com.example.android.app.popularmovies.ExpandableListView
                 android:id="@+id/movie_trailers_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
@@ -109,7 +109,7 @@
                 android:text="\nReviews:\n"
                 android:textAppearance="?android:textAppearanceMedium" />
 
-            <ListView
+            <com.example.android.app.popularmovies.ExpandableListView
                 android:id="@+id/movie_reviews_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />

@@ -13,12 +13,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.ListAdapter;
-import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -48,17 +45,37 @@ public class DetailActivity extends AppCompatActivity {
 
     public static class DetailActivityFragment extends Fragment {
 
-        private static final String LOG_TAG = DetailActivityFragment.class.getSimpleName();
+        private final String LOG_TAG = DetailActivityFragment.class.getSimpleName();
         private MovieDetail movie;
         private MovieReviewAdapter movieReviewsAdapter;
         private MovieTrailerAdapter movieTrailersAdapter;
-        private ListView movieTrailersListView;
-        private ListView movieReviewsListView;
         private ScrollView scrollView;
-        private static int scrollY = -1;
+        private int scrollY = -1;
 
         public DetailActivityFragment() {
             setHasOptionsMenu(true);
+        }
+
+        @Override
+        public void onResume()
+        {
+            super.onResume();
+            //this is important. scrollTo doesn't work in main thread.
+            scrollView.post(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    scrollView.scrollTo(0, scrollY);
+                }
+            });
+        }
+
+        @Override
+        public void onPause()
+        {
+            super.onPause();
+            scrollY = scrollView.getScrollY();
         }
 
         @Override
@@ -66,7 +83,7 @@ public class DetailActivity extends AppCompatActivity {
             super.onSaveInstanceState(outState);
             outState.putParcelableArrayList("movieReviewsAdapter", movieReviewsAdapter.getAll());
             outState.putParcelableArrayList("movieTrailersAdapter", movieTrailersAdapter.getAll());
-            scrollY = scrollView.getScrollY();
+            outState.putInt("scrollPosition", scrollView.getScrollY());
         }
 
         @Override
@@ -86,24 +103,28 @@ public class DetailActivity extends AppCompatActivity {
             View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
             scrollView = (ScrollView) rootView.findViewById(R.id.activity_detail_scroll_view);
 
-            scrollView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-                @Override
-                public void onGlobalLayout() {
-                    // Ready, move to last position
-                    scrollView.scrollTo(0, scrollY);
-                }
-            });
-
             if (savedInstanceState != null) {
-                ArrayList<MovieReview> trailerItems = savedInstanceState.getParcelableArrayList("movieReviewsAdapter");
-                movieReviewsAdapter.addAll(trailerItems); // Load saved data if any.
-                ArrayList<MovieReview> reviewItems = savedInstanceState.getParcelableArrayList("movieTrailersAdapter");
-                movieReviewsAdapter.addAll(reviewItems); // Load saved data if any.
+                ArrayList<MovieTrailer> trailerItems = savedInstanceState.getParcelableArrayList("movieTrailersAdapter");
+                if (trailerItems != null)
+                    movieTrailersAdapter.addAll(trailerItems); // Load saved data if any.
+                ArrayList<MovieReview> reviewItems = savedInstanceState.getParcelableArrayList("movieReviewsAdapter");
+                if (reviewItems != null)
+                    movieReviewsAdapter.addAll(reviewItems); // Load saved data if any.
+                scrollY = savedInstanceState.getInt("scrollPosition");
             }
 
-            movieTrailersListView = (ListView) rootView.findViewById(R.id.movie_trailers_list);
-            movieTrailersListView.setAdapter(movieTrailersAdapter);
+//            scrollView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+//                @Override
+//                public void onGlobalLayout() {
+//                    // Ready, move to last position
+//                    scrollView.scrollTo(0, scrollY);
+//                }
+//            });
 
+
+            ExpandableListView movieTrailersListView = (ExpandableListView) rootView.findViewById(R.id.movie_trailers_list);
+
+            movieTrailersListView.setAdapter(movieTrailersAdapter);
 
             movieTrailersListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -121,7 +142,7 @@ public class DetailActivity extends AppCompatActivity {
             });
 
 
-            movieReviewsListView = (ListView) rootView.findViewById(R.id.movie_reviews_list);
+            ExpandableListView movieReviewsListView = (ExpandableListView) rootView.findViewById(R.id.movie_reviews_list);
             movieReviewsListView.setAdapter(movieReviewsAdapter);
 
             if (intent != null && intent.hasExtra("movie_detail")) {
@@ -131,61 +152,43 @@ public class DetailActivity extends AppCompatActivity {
                 ((ImageView) rootView.findViewById(R.id.movie_poster)).setImageBitmap(movie.getMoviePoster());
                 ((TextView) rootView.findViewById(R.id.vote_average)).setText(movie.getVoteAverageStr());
                 ((TextView) rootView.findViewById(R.id.plot_synopsis)).setText(movie.getPlotSynopsis());
-
-
-                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getContext());
-                final Set<String> favouriteMoviesSet =
-                        sharedPref.getStringSet(getString(R.string.favourite_movies), new HashSet<String>());
-
-                final Button favouriteButton = (Button) rootView.findViewById(R.id.favourite_button);
-                if (favouriteMoviesSet.contains(movie.getMovieID()))
-                    favouriteButton.setText(getString(R.string.favourite_button_remove));
-                else
-                    favouriteButton.setText(getString(R.string.favourite_button_add));
-                favouriteButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getContext());
-                        SharedPreferences.Editor editor = sharedPref.edit();
-                        String sortGridBy = sharedPref.getString(
-                                getString(R.string.pref_movie_state_key),
-                                getString(R.string.pref_value_popularity));
-                        if (favouriteMoviesSet.contains(movie.getMovieID())) {
-                            favouriteMoviesSet.remove(movie.getMovieID());
-                            favouriteButton.setText(getString(R.string.favourite_button_add));
-                        } else {
-                            favouriteMoviesSet.add(movie.getMovieID());
-                            favouriteButton.setText(getString(R.string.favourite_button_remove));
-                        }
-                        editor.putString(getString(R.string.pref_movie_state_key), sortGridBy);
-                        editor.putStringSet(getString(R.string.favourite_movies), favouriteMoviesSet);
-                        editor.clear();
-                        editor.apply();
-                    }
-                });
+                setFavButtonProperties(rootView);
             }
             return rootView;
         }
 
+        private void setFavButtonProperties(View rootView) {
 
-        /****
-         * Method for Setting the Height of the ListView dynamically.
-         * *** Hack to fix the issue of not showing all the items of the ListView
-         * *** when placed inside a ScrollView
-         ****/
-        public static void setListViewHeightBasedOnChildren(ListView listView) {
-            ListAdapter listAdapter = listView.getAdapter();
-            int totalHeight = 0;
-            for (int i = 0; i < listAdapter.getCount(); i++) {
-                View listItem = listAdapter.getView(i, null, listView);
-                listItem.measure(0, 0);
-                totalHeight += listItem.getMeasuredHeight();
-            }
+            final SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getContext());
+            final Button favouriteButton = (Button) rootView.findViewById(R.id.favourite_button);
+            final Set<String> favouriteMoviesSet =
+                    sharedPref.getStringSet(getString(R.string.favourite_movies), new HashSet<String>());
 
-            ViewGroup.LayoutParams params = listView.getLayoutParams();
-            params.height = totalHeight + (listView.getDividerHeight() * (listAdapter.getCount() - 1));
-            listView.setLayoutParams(params);
-            listView.requestLayout();
+            if (favouriteMoviesSet.contains(movie.getMovieID()))
+                favouriteButton.setText(getString(R.string.favourite_button_remove));
+            else
+                favouriteButton.setText(getString(R.string.favourite_button_add));
+
+            favouriteButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    SharedPreferences.Editor editor = sharedPref.edit();
+                    String sortGridBy = sharedPref.getString(
+                            getString(R.string.pref_movie_state_key),
+                            getString(R.string.pref_value_popularity));
+                    if (favouriteMoviesSet.contains(movie.getMovieID())) {
+                        favouriteMoviesSet.remove(movie.getMovieID());
+                        favouriteButton.setText(getString(R.string.favourite_button_add));
+                    } else {
+                        favouriteMoviesSet.add(movie.getMovieID());
+                        favouriteButton.setText(getString(R.string.favourite_button_remove));
+                    }
+                    editor.putString(getString(R.string.pref_movie_state_key), sortGridBy);
+                    editor.putStringSet(getString(R.string.favourite_movies), favouriteMoviesSet);
+                    editor.clear();
+                    editor.apply();
+                }
+            });
         }
 
         private void updateMovieDetails() {
@@ -306,10 +309,11 @@ public class DetailActivity extends AppCompatActivity {
                         movieTrailersAdapter.add(movieTrailer);
                     }
                     if (movieTrailers.size() == 0) {
-                        movieTrailers.add(new MovieTrailer("No trailers found", "https://www.youtube.com",
-                                Bitmap.createBitmap(480, 360, Bitmap.Config.ARGB_8888)));
+                        movieTrailersAdapter.add(new MovieTrailer("No trailers found",
+                                "https://www.youtube.com/results?search_query=" + movie.getMovieTitle() + " movie trailer",
+                                Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)));
                     }
-                    setListViewHeightBasedOnChildren(movieTrailersListView);
+                    scrollView.scrollTo(0, scrollY);
                 }
             }
         }
@@ -413,7 +417,7 @@ public class DetailActivity extends AppCompatActivity {
                     if (movieReviews.size() == 0) {
                         movieReviewsAdapter.add(new MovieReview("", "No reviews yet."));
                     }
-                    //setListViewHeightBasedOnChildren(movieReviewsListView);
+                    scrollView.scrollTo(0, scrollY);
                 }
             }
         }
