@@ -43,6 +43,11 @@ public class DetailActivity extends AppCompatActivity {
         setContentView(R.layout.activity_detail);
     }
 
+    @Override
+    public Intent getParentActivityIntent() {
+        return super.getParentActivityIntent().addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+    }
+
     public static class DetailActivityFragment extends Fragment {
 
         private final String LOG_TAG = DetailActivityFragment.class.getSimpleName();
