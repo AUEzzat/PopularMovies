@@ -40,8 +40,9 @@ public class MovieDetailAdapter extends ArrayAdapter<MovieDetail> {
             convertView = LayoutInflater.from(getContext()).inflate(R.layout.popular_movies_layout, parent, false);
         }
 
-        ImageView iconView = (ImageView) convertView.findViewById(R.id.list_item_icon);
+        ImageView iconView = (ImageView) convertView.findViewById(R.id.grid_item_icon);
         iconView.setImageBitmap(movieDetail.getMoviePoster());
+        iconView.setAdjustViewBounds(true);
 
         return convertView;
     }

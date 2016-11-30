@@ -11,15 +11,20 @@
         android:id="@+id/activity_detail"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:focusableInTouchMode="true">
 
         <TextView
             android:id="@+id/movie_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#009688"
-            android:padding="@dimen/fab_margin"
-            android:textAppearance="?android:textAppearanceLarge" />
+            android:background="@color/colorAccent"
+            android:paddingTop="30dp"
+            android:paddingBottom="25dp"
+            android:paddingLeft="@dimen/fab_margin"
+            android:paddingRight="@dimen/fab_margin"
+            android:textSize="30sp"
+            android:textAppearance="?android:textAppearanceLarge"/>
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -31,7 +36,10 @@
                 android:id="@+id/movie_poster"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:scaleType="centerCrop" />
+                android:scaleType="centerCrop"
+                android:shape="rectangle"
+                android:padding="2dp"
+                android:background="@color/colorPrimaryDark"/>
 
             <View
                 android:layout_width="10dp"
@@ -47,13 +55,13 @@
                     android:id="@+id/release_date"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textAppearance="?android:textAppearanceLarge"/>
+                    android:textAppearance="?android:textAppearanceLargeInverse"/>
 
                 <TextView
                     android:id="@+id/vote_average"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textAppearance="?android:textAppearanceMedium"/>
+                    android:textAppearance="?android:textAppearanceSmallInverse"/>
 
                 <Button
                     android:layout_width="wrap_content"
@@ -78,18 +86,20 @@
             <View
                 android:layout_width="fill_parent"
                 android:layout_height="1dp"
-                android:background="#FF0000FF" />
+                android:background="@color/textColorTertiary" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="\nTrailers:\n"
-                android:textAppearance="?android:textAppearanceMedium" />
+                android:textAppearance="?android:textAppearanceLargeInverse" />
 
             <com.example.android.app.popularmovies.ExpandableListView
                 android:id="@+id/movie_trailers_list"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:divider="@color/textColorTertiary"
+                android:dividerHeight="1dp"/>
         </LinearLayout>
 
         <LinearLayout
@@ -101,18 +111,20 @@
             <View
                 android:layout_width="fill_parent"
                 android:layout_height="1dp"
-                android:background="#FF0000FF" />
+                android:background="@color/textColorTertiary" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="\nReviews:\n"
-                android:textAppearance="?android:textAppearanceMedium" />
+                android:textAppearance="?android:textAppearanceLargeInverse" />
 
             <com.example.android.app.popularmovies.ExpandableListView
                 android:id="@+id/movie_reviews_list"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:divider="@color/textColorTertiary"
+                android:dividerHeight="2dp"/>
         </LinearLayout>
 
     </LinearLayout>
