@@ -57,25 +57,22 @@ public class DetailActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onResume()
-        {
+        public void onResume() {
             super.onResume();
             //this is important. scrollTo doesn't work in main thread.
-            scrollView.post(new Runnable()
-            {
+            scrollView.post(new Runnable() {
                 @Override
-                public void run()
-                {
+                public void run() {
                     scrollView.scrollTo(0, scrollY);
                 }
             });
         }
 
         @Override
-        public void onPause()
-        {
+        public void onPause() {
             super.onPause();
             scrollY = scrollView.getScrollY();
+            Log.v("Soso",Integer.toString(scrollY));
         }
 
         @Override
@@ -102,7 +99,6 @@ public class DetailActivity extends AppCompatActivity {
             Intent intent = getActivity().getIntent();
             View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
             scrollView = (ScrollView) rootView.findViewById(R.id.activity_detail_scroll_view);
-
             if (savedInstanceState != null) {
                 ArrayList<MovieTrailer> trailerItems = savedInstanceState.getParcelableArrayList("movieTrailersAdapter");
                 if (trailerItems != null)
@@ -112,14 +108,6 @@ public class DetailActivity extends AppCompatActivity {
                     movieReviewsAdapter.addAll(reviewItems); // Load saved data if any.
                 scrollY = savedInstanceState.getInt("scrollPosition");
             }
-
-//            scrollView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-//                @Override
-//                public void onGlobalLayout() {
-//                    // Ready, move to last position
-//                    scrollView.scrollTo(0, scrollY);
-//                }
-//            });
 
 
             ExpandableListView movieTrailersListView = (ExpandableListView) rootView.findViewById(R.id.movie_trailers_list);
@@ -133,14 +121,14 @@ public class DetailActivity extends AppCompatActivity {
                     MovieTrailer movieTrailer = movieTrailersAdapter.getItem(position);
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setData(Uri.parse(movieTrailer.getTrailerVideoSource()));
-                    if (intent.resolveActivity(getContext().getPackageManager()) != null) {
+                    if (intent.resolveActivity(getActivity().getPackageManager()) != null) {
                         startActivity(intent);
                     } else {
                         Log.d(LOG_TAG, "Couldn't call " + movieTrailer.getTrailerVideoSource() + ", no receiving apps installed!");
                     }
                 }
             });
-
+            movieTrailersListView.setDrawSelectorOnTop(true);
 
             ExpandableListView movieReviewsListView = (ExpandableListView) rootView.findViewById(R.id.movie_reviews_list);
             movieReviewsListView.setAdapter(movieReviewsAdapter);
@@ -157,15 +145,17 @@ public class DetailActivity extends AppCompatActivity {
             return rootView;
         }
 
+
         private void setFavButtonProperties(View rootView) {
 
-            final SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getContext());
+            final SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());
             final Button favouriteButton = (Button) rootView.findViewById(R.id.favourite_button);
             final Set<String> favouriteMoviesSet =
                     sharedPref.getStringSet(getString(R.string.favourite_movies), new HashSet<String>());
 
-            if (favouriteMoviesSet.contains(movie.getMovieID()))
+            if (favouriteMoviesSet.contains(movie.getMovieID())) {
                 favouriteButton.setText(getString(R.string.favourite_button_remove));
+            }
             else
                 favouriteButton.setText(getString(R.string.favourite_button_add));
 
@@ -222,10 +212,18 @@ public class DetailActivity extends AppCompatActivity {
                     String trailerTitle = eachTrailer.getString("name");
                     String trailerSource = eachTrailer.getString("source");
                     String trailerImageSource = "https://img.youtube.com/vi/" + trailerSource + "/0.jpg";
-                    Bitmap trailerImageBitmap = Picasso.with(getContext()).load(trailerImageSource).get();
+                    String trailerVideoSource = "https://www.youtube.com/watch?v=" + trailerSource;
+                    Bitmap trailerImageBitmap;
+                    try {
+                        trailerImageBitmap = Picasso.with(getActivity()).load(trailerImageSource).get();
+                    }
+                    catch (Exception e){
+                        e.printStackTrace();
+                        continue;
+                    }
                     trailerImageBitmap = Bitmap.createScaledBitmap(trailerImageBitmap, (int) (trailerImageBitmap.getWidth() * 0.5),
                             (int) (trailerImageBitmap.getHeight() * 0.5), true);
-                    String trailerVideoSource = "https://www.youtube.com/watch?v=" + trailerSource;
+
                     MovieTrailer movieTrailer = new MovieTrailer(trailerTitle, trailerVideoSource, trailerImageBitmap);
                     movieTrailers.add(movieTrailer);
                 }
@@ -309,11 +307,11 @@ public class DetailActivity extends AppCompatActivity {
                         movieTrailersAdapter.add(movieTrailer);
                     }
                     if (movieTrailers.size() == 0) {
-                        movieTrailersAdapter.add(new MovieTrailer("No trailers found",
-                                "https://www.youtube.com/results?search_query=" + movie.getMovieTitle() + " movie trailer",
+                        movieTrailersAdapter.add(new MovieTrailer("No trailers found.",
+                                String.format("https://www.youtube.com/results?search_query=%s $s movie trailer",
+                                        movie.getMovieTitle(), movie.getReleaseDateStr()),
                                 Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)));
                     }
-                    scrollView.scrollTo(0, scrollY);
                 }
             }
         }
@@ -417,7 +415,6 @@ public class DetailActivity extends AppCompatActivity {
                     if (movieReviews.size() == 0) {
                         movieReviewsAdapter.add(new MovieReview("", "No reviews yet."));
                     }
-                    scrollView.scrollTo(0, scrollY);
                 }
             }
         }

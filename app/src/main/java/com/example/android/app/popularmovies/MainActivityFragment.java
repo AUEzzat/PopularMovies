@@ -7,7 +7,6 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -42,7 +41,6 @@ public class MainActivityFragment extends Fragment {
     private MovieDetailAdapter popMoviesAdapter;
     private View rootView;
     private GridView gridView;
-    private Parcelable state;
 
     public MainActivityFragment() {
     }
@@ -50,7 +48,6 @@ public class MainActivityFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-
         popMoviesAdapter =
                 new MovieDetailAdapter(
                         getActivity(), // The current context (this activity)
@@ -74,12 +71,13 @@ public class MainActivityFragment extends Fragment {
                 startActivity(intent);
             }
         });
+        gridView.setDrawSelectorOnTop(true);
         return rootView;
     }
 
     private void updateMovieGrid() {
         FetchMoviesData movieTask = new FetchMoviesData();
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
         String api_key = prefs.getString(getString(R.string.pref_api_key), getString(R.string.pref_api_value));
         movieTask.execute(api_key);
     }
@@ -126,11 +124,11 @@ public class MainActivityFragment extends Fragment {
                 String posterID = eachMovie.getString("poster_path");
                 String moviePosterStr = "http://image.tmdb.org/t/p/w185" + posterID;
                 Bitmap moviePoster;
-                if(!posterID.equals("null"))
-                    moviePoster = Picasso.with(getContext()).load(moviePosterStr).get();
+                if (!posterID.equals("null"))
+                    moviePoster = Picasso.with(getActivity()).load(moviePosterStr).centerCrop().resize(185, 277).get();
                 else
-                    moviePoster = BitmapFactory.decodeResource(getResources(),R.drawable.no_poster);
-                moviePoster = Bitmap.createScaledBitmap(moviePoster, 185, 277, true);
+                    moviePoster = Bitmap.createScaledBitmap(BitmapFactory
+                            .decodeResource(getResources(), R.drawable.no_poster), 185, 277, true);
                 Double voteAverage = Double.parseDouble(eachMovie.getString("vote_average"));
                 Integer voteCount = Integer.parseInt(eachMovie.getString("vote_count"));
                 String plotSynopsis = eachMovie.getString("overview");
@@ -171,7 +169,7 @@ public class MainActivityFragment extends Fragment {
                 sortByFavourites = true;
             try {
                 if (sortByFavourites) {
-                    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getContext());
+                    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());
                     Set<String> favouriteMoviesSet =
                             sharedPref.getStringSet(getString(R.string.favourite_movies), new HashSet<String>());
                     JSONArray moviesJsonArray = new JSONArray();
@@ -287,7 +285,7 @@ public class MainActivityFragment extends Fragment {
                     if (sortByFavourites)
                         popMoviesText.setText("Add movies to Favourites to see here");
                     else
-                        popMoviesText.setText("No movies found with this criteries");
+                        popMoviesText.setText("No movies found with this search criteria");
                 }
             }
         }
