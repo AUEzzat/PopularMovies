@@ -13,6 +13,8 @@ import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -51,6 +53,25 @@ public class DetailActivity extends AppCompatActivity {
         return super.getParentActivityIntent().addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        int id = item.getItemId();
+
+        if (id == R.id.action_settings) {
+            startActivity(new Intent(this, SettingsActivity.class));
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
     public static class DetailActivityFragment extends Fragment {
 
         private final String LOG_TAG = DetailActivityFragment.class.getSimpleName();
@@ -80,7 +101,6 @@ public class DetailActivity extends AppCompatActivity {
         public void onPause() {
             super.onPause();
             scrollY = scrollView.getScrollY();
-            Log.v("Soso",Integer.toString(scrollY));
         }
 
         @Override
@@ -95,7 +115,6 @@ public class DetailActivity extends AppCompatActivity {
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
 
-            // Wait until my scrollView is ready
             movieTrailersAdapter =
                     new MovieTrailerAdapter(
                             getActivity(), // The current context (this activity)
@@ -104,7 +123,10 @@ public class DetailActivity extends AppCompatActivity {
                     getActivity(), // The current context (this activity)
                     new ArrayList<MovieReview>());
 
-            Intent intent = getActivity().getIntent();
+//            Intent callIntent = getActivity().getIntent();
+            Bundle args = getArguments();
+            if(args != null)
+                movie = args.getParcelable("movie_detail");
             View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
             scrollView = (ScrollView) rootView.findViewById(R.id.activity_detail_scroll_view);
             if (savedInstanceState != null) {
@@ -141,8 +163,9 @@ public class DetailActivity extends AppCompatActivity {
             ExpandableListView movieReviewsListView = (ExpandableListView) rootView.findViewById(R.id.movie_reviews_list);
             movieReviewsListView.setAdapter(movieReviewsAdapter);
 
-            if (intent != null && intent.hasExtra("movie_detail")) {
-                movie = intent.getExtras().getParcelable("movie_detail");
+//            if (callIntent != null && callIntent.hasExtra("movie_detail")) {
+//                movie = callIntent.getExtras().getParcelable("movie_detail");
+            if(movie != null){
                 ((TextView) rootView.findViewById(R.id.movie_title)).setText(movie.getMovieTitle());
                 ((TextView) rootView.findViewById(R.id.release_date)).setText(movie.getReleaseDateStr());
                 ((ImageView) rootView.findViewById(R.id.movie_poster)).setImageBitmap(movie.getMoviePoster());
@@ -194,9 +217,11 @@ public class DetailActivity extends AppCompatActivity {
             FetchMovieReviews movieReviewsTask = new FetchMovieReviews();
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
             String api_key = prefs.getString(getString(R.string.pref_api_key), getString(R.string.pref_api_value));
-            String movieID = movie.getMovieID();
-            movieTrailersTask.execute(api_key, movieID);
-            movieReviewsTask.execute(api_key, movieID);
+            if(movie != null) {
+                String movieID = movie.getMovieID();
+                movieTrailersTask.execute(api_key, movieID);
+                movieReviewsTask.execute(api_key, movieID);
+            }
         }
 
         @Override
@@ -309,7 +334,7 @@ public class DetailActivity extends AppCompatActivity {
 
             @Override
             protected void onPostExecute(ArrayList<MovieTrailer> movieTrailers) {
-                if (movieTrailers != null) {
+                if (movieTrailers != null && isAdded()) {
                     movieTrailersAdapter.clear();
                     for (MovieTrailer movieTrailer : movieTrailers) {
                         movieTrailersAdapter.add(movieTrailer);
@@ -415,7 +440,7 @@ public class DetailActivity extends AppCompatActivity {
 
             @Override
             protected void onPostExecute(ArrayList<MovieReview> movieReviews) {
-                if (movieReviews != null) {
+                if (movieReviews != null && isAdded()) {
                     movieReviewsAdapter.clear();
                     for (MovieReview movieReview : movieReviews) {
                         movieReviewsAdapter.add(movieReview);

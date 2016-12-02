@@ -3,7 +3,6 @@ package com.example.android.app.popularmovies;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -16,6 +15,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
@@ -33,21 +33,26 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * A placeholder fragment containing a simple view.
- */
 public class MainActivityFragment extends Fragment {
 
     private MovieDetailAdapter popMoviesAdapter;
     private View rootView;
-    private GridView gridView;
+    private SharedPreferences sharedPrefs;
+    private FetchMoviesData fetchMoviesData = null;
 
     public MainActivityFragment() {
     }
 
     @Override
+    public void onStart() {
+        super.onStart();
+        updateMoviesGrid();
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
         popMoviesAdapter =
                 new MovieDetailAdapter(
                         getActivity(), // The current context (this activity)
@@ -57,45 +62,66 @@ public class MainActivityFragment extends Fragment {
             if (items != null)
                 popMoviesAdapter.addAll(items); // Load saved data if any.
         }
+
         rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
-        // Get a reference to the ListView, and attach this adapter to it.
-        gridView = (GridView) rootView.findViewById(R.id.popular_movies_grid);
+        String toastMessage = "Enter your themoviedb.org API";
+        if (getString(R.string.pref_api_value).equals(toastMessage)) {
+            toastMessage = "Enter your themoviedb.org API key";
+            Toast.makeText(getActivity(), toastMessage, Toast.LENGTH_LONG).show();
+        }
+
+        // Get a reference to the GridView, and attach this adapter to it.
+        GridView gridView = (GridView) rootView.findViewById(R.id.popular_movies_grid);
         gridView.setAdapter(popMoviesAdapter);
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 MovieDetail movie = popMoviesAdapter.getItem(position);
-                Intent intent = new Intent(getActivity(), DetailActivity.class)
-                        .putExtra("movie_detail", movie);
-                startActivity(intent);
+                //check twopane or not
+                if (getActivity().findViewById(R.id.details_fragment) != null) {
+                    DetailActivity.DetailActivityFragment movieDetailFragment = new DetailActivity.DetailActivityFragment();
+                    Bundle args = new Bundle();
+                    args.putParcelable("movie_detail", movie);
+                    movieDetailFragment.setArguments(args);
+
+                    getFragmentManager().beginTransaction()
+                            .replace(R.id.details_fragment, movieDetailFragment)
+                            .commit();
+                } else {
+                    Intent intent = new Intent(getActivity(), DetailActivity.class)
+                            .putExtra("movie_detail", movie);
+                    startActivity(intent);
+                }
             }
         });
         gridView.setDrawSelectorOnTop(true);
         return rootView;
     }
 
-    private void updateMovieGrid() {
+    private void updateMoviesGrid() {
         FetchMoviesData movieTask = new FetchMoviesData();
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String api_key = prefs.getString(getString(R.string.pref_api_key), getString(R.string.pref_api_value));
-        movieTask.execute(api_key);
+        sharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String api_key = sharedPrefs.getString(getString(R.string.pref_api_key), getString(R.string.pref_api_value));
+        String movieStartPref = sharedPrefs.getString(getString(R.string.pref_movie_state_key),
+                getString(R.string.pref_value_popularity));
+        movieTask.execute(api_key, movieStartPref);
     }
 
     @Override
-    public void onSaveInstanceState(Bundle state) {
-        super.onSaveInstanceState(state);
-        state.putParcelableArrayList("moviesAdapter", popMoviesAdapter.getAll());
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelableArrayList("moviesAdapter", popMoviesAdapter.getAll());
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-//        String toastMessage = "Enter your themoviedb.org API";
-//        if (getString(R.string.pref_api_value).equals(toastMessage))
-//            toastMessage = "Enter your themoviedb.org API key";
-//        Toast.makeText(getActivity(),getString(R.string.pref_api_value), Toast.LENGTH_LONG).show();
-        updateMovieGrid();
+    public void onDestroy() {
+        super.onDestroy();
+        if (fetchMoviesData != null) {
+            fetchMoviesData.cancel(true);
+            fetchMoviesData = null;
+        }
+
     }
 
     public class FetchMoviesData extends AsyncTask<String, Void, MovieDetail[]> {
@@ -123,12 +149,9 @@ public class MainActivityFragment extends Fragment {
                         Integer.parseInt(releaseDateStr.substring(0, 4)) : 0;
                 String posterID = eachMovie.getString("poster_path");
                 String moviePosterStr = "http://image.tmdb.org/t/p/w185" + posterID;
-                Bitmap moviePoster;
-                if (!posterID.equals("null"))
-                    moviePoster = Picasso.with(getActivity()).load(moviePosterStr).centerCrop().resize(185, 277).get();
-                else
-                    moviePoster = Bitmap.createScaledBitmap(BitmapFactory
-                            .decodeResource(getResources(), R.drawable.no_poster), 185, 277, true);
+                if (posterID.equals("null"))
+                    moviePosterStr = "https://cdn.amctheatres.com/Media/Default/Images/noposter.jpg";
+                Bitmap moviePoster = Picasso.with(getActivity()).load(moviePosterStr).centerCrop().resize(185, 277).get();
                 Double voteAverage = Double.parseDouble(eachMovie.getString("vote_average"));
                 Integer voteCount = Integer.parseInt(eachMovie.getString("vote_count"));
                 String plotSynopsis = eachMovie.getString("overview");
@@ -139,16 +162,15 @@ public class MainActivityFragment extends Fragment {
             return moviesResult;
         }
 
-//        @Override
-//        protected void onPreExecute() {
-//
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
 //            progressDialog = ProgressDialog.show(getContext(), "Loading...",
 //                    "Data is Loading...");
-//        }
+        }
 
         @Override
         protected MovieDetail[] doInBackground(String... params) {
-
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
 
@@ -156,10 +178,7 @@ public class MainActivityFragment extends Fragment {
             String moviesJsonStr = null;
             String myApiKey = params[0];
             String movieState = "popularity.desc";
-            SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-            String movieStatePref = sharedPrefs.getString(
-                    getString(R.string.pref_movie_state_key),
-                    getString(R.string.pref_value_popularity));
+            String movieStatePref = params[1];
             sortByFavourites = false;
             if (movieStatePref.equals(getString(R.string.pref_value_top_rated)))
                 movieState = "top_rated.desc";
@@ -169,9 +188,8 @@ public class MainActivityFragment extends Fragment {
                 sortByFavourites = true;
             try {
                 if (sortByFavourites) {
-                    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());
                     Set<String> favouriteMoviesSet =
-                            sharedPref.getStringSet(getString(R.string.favourite_movies), new HashSet<String>());
+                            sharedPrefs.getStringSet(getString(R.string.favourite_movies), new HashSet<String>());
                     JSONArray moviesJsonArray = new JSONArray();
                     for (String favouriteMovieID : favouriteMoviesSet) {
                         Uri.Builder movieUrl = new Uri.Builder();
@@ -275,7 +293,7 @@ public class MainActivityFragment extends Fragment {
         @Override
         protected void onPostExecute(MovieDetail[] movieResult) {
 //            progressDialog.dismiss();
-            if (movieResult != null && popMoviesAdapter != null) {
+            if (movieResult != null && popMoviesAdapter != null && isAdded()) {
                 popMoviesAdapter.clear();
                 for (MovieDetail popMovieObj : movieResult) {
                     popMoviesAdapter.add(popMovieObj);
@@ -288,6 +306,7 @@ public class MainActivityFragment extends Fragment {
                         popMoviesText.setText("No movies found with this search criteria");
                 }
             }
+            fetchMoviesData = null;
         }
     }
 }
