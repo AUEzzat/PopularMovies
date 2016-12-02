@@ -123,10 +123,12 @@ public class DetailActivity extends AppCompatActivity {
                     getActivity(), // The current context (this activity)
                     new ArrayList<MovieReview>());
 
-//            Intent callIntent = getActivity().getIntent();
+            Intent intent = getActivity().getIntent();
             Bundle args = getArguments();
             if(args != null)
                 movie = args.getParcelable("movie_detail");
+            else if(intent != null)
+                movie = intent.getParcelableExtra("movie_detail");
             View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
             scrollView = (ScrollView) rootView.findViewById(R.id.activity_detail_scroll_view);
             if (savedInstanceState != null) {

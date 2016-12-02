@@ -7,7 +7,7 @@
 
     <!-- settings menu options -->
     <string name="pref_api_key">api_key</string>
-    <string name="pref_api_value">Enter your themoviedb.org API</string>
+    <string name="pref_api_value">Enter your themoviedb.org API key</string>
     <string name="pref_movie_state_key">sort_type</string>
 
     <!-- settings menu sort type options -->
