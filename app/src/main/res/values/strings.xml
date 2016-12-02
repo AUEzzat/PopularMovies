@@ -1,0 +1,25 @@
+<resources>
+
+    <string name="app_name">\tPopular Movies</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_detail">Movie Details</string>
+    <string name="title_activity_settings">Settings</string>
+
+    <!-- settings menu options -->
+    <string name="pref_api_key">api_key</string>
+    <string name="pref_api_value"></string>
+    <string name="pref_movie_state_key">sort_type</string>
+
+    <!-- settings menu sort type options -->
+    <string name="pref_label_popularity">Most popular</string>
+    <string name="pref_label_top_rated">Highest rated</string>
+    <string name="pref_label_favourite">Favourites</string>
+    <string name="pref_value_popularity">most popular</string>
+    <string name="pref_value_top_rated">highest rated</string>
+    <string name="pref_value_favourite">favourites</string>
+
+    <!-- detal activity fragment -->
+    <string name="favourite_button_add">add to favourites</string>
+    <string name="favourite_button_remove">remove favourite</string>
+    <string name="favourite_movies">favourite_movies</string>
+</resources>
