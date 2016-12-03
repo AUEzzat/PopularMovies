@@ -65,12 +65,6 @@ public class MainActivityFragment extends Fragment {
 
         rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
-        String toastMessage = "Enter your themoviedb.org API";
-        if (getString(R.string.pref_api_value).equals(toastMessage)) {
-            toastMessage = "Enter your themoviedb.org API key";
-            Toast.makeText(getActivity(), toastMessage, Toast.LENGTH_LONG).show();
-        }
-
         // Get a reference to the GridView, and attach this adapter to it.
         GridView gridView = (GridView) rootView.findViewById(R.id.popular_movies_grid);
         gridView.setAdapter(popMoviesAdapter);
@@ -105,6 +99,10 @@ public class MainActivityFragment extends Fragment {
         String api_key = sharedPrefs.getString(getString(R.string.pref_api_key), getString(R.string.pref_api_value));
         String movieStartPref = sharedPrefs.getString(getString(R.string.pref_movie_state_key),
                 getString(R.string.pref_value_popularity));
+        String toastMessage = "Enter your themoviedb.org API";
+        if (api_key.equals(toastMessage)) {
+            Toast.makeText(getActivity(), toastMessage, Toast.LENGTH_LONG).show();
+        }
         movieTask.execute(api_key, movieStartPref);
     }
 
